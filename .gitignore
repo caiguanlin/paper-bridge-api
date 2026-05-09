@@ -37,3 +37,4 @@ Thumbs.db
 *.env
 *.local
 application-local.yml
+/.claude/settings.local.json
