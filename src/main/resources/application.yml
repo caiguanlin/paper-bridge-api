@@ -1,0 +1,32 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: paper-bridge-api
+  datasource:
+    url: jdbc:mysql://localhost:3306/paper_teacher?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root
+    password: root
+  jackson:
+    default-property-inclusion: non_null
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto
+
+app:
+  jwt:
+    issuer: paper-bridge
+    secret: "paper-bridge-local-development-secret-key-change-before-production"
+    expires-minutes: 720
+  ai:
+    provider: deepseek
+    deepseek:
+      base-url: https://api.deepseek.com
+      api-key: ${DEEPSEEK_API_KEY:}
+      model: ${DEEPSEEK_MODEL:deepseek-chat}
+      temperature: 0.2
