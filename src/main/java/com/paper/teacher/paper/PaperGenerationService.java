@@ -118,6 +118,125 @@ public class PaperGenerationService {
                 .toList();
     }
 
+    @Transactional
+    public PaperResponse copy(Long ownerUserId, Long paperId) {
+        Paper original = requirePaper(ownerUserId, paperId);
+        LocalDateTime now = LocalDateTime.now();
+        Paper copy = new Paper();
+        copy.setOwnerUserId(ownerUserId);
+        copy.setTitle(original.getTitle() + " (副本)");
+        copy.setGrade(original.getGrade());
+        copy.setPublisher(original.getPublisher());
+        copy.setSubject(original.getSubject());
+        copy.setVolume(original.getVolume());
+        copy.setUnit(original.getUnit());
+        copy.setChapter(original.getChapter());
+        copy.setTotalScore(original.getTotalScore());
+        copy.setStatus(PaperStatus.DRAFT);
+        copy.setCreatedAt(now);
+        copy.setUpdatedAt(now);
+        paperRepository.insert(copy);
+
+        List<PaperSection> originalSections = paperSectionRepository.selectList(
+                new LambdaQueryWrapper<PaperSection>()
+                        .eq(PaperSection::getPaperId, paperId)
+                        .orderByAsc(PaperSection::getSortOrder));
+
+        for (PaperSection originalSection : originalSections) {
+            PaperSection copySection = new PaperSection();
+            copySection.setPaperId(copy.getId());
+            copySection.setTitle(originalSection.getTitle());
+            copySection.setQuestionType(originalSection.getQuestionType());
+            copySection.setQuestionCount(originalSection.getQuestionCount());
+            copySection.setScorePerQuestion(originalSection.getScorePerQuestion());
+            copySection.setSubtotalScore(originalSection.getSubtotalScore());
+            copySection.setSortOrder(originalSection.getSortOrder());
+            paperSectionRepository.insert(copySection);
+
+            List<PaperQuestion> originalQuestions = paperQuestionRepository.selectList(
+                    new LambdaQueryWrapper<PaperQuestion>()
+                            .eq(PaperQuestion::getSectionId, originalSection.getId())
+                            .orderByAsc(PaperQuestion::getSortOrder));
+
+            for (PaperQuestion originalQuestion : originalQuestions) {
+                PaperQuestion copyQuestion = new PaperQuestion();
+                copyQuestion.setPaperId(copy.getId());
+                copyQuestion.setSectionId(copySection.getId());
+                copyQuestion.setSourceQuestionId(originalQuestion.getSourceQuestionId());
+                copyQuestion.setSource(originalQuestion.getSource());
+                copyQuestion.setStemSnapshot(originalQuestion.getStemSnapshot());
+                copyQuestion.setContentSnapshotJson(originalQuestion.getContentSnapshotJson());
+                copyQuestion.setAnswerSnapshotJson(originalQuestion.getAnswerSnapshotJson());
+                copyQuestion.setAnalysisSnapshot(originalQuestion.getAnalysisSnapshot());
+                copyQuestion.setScore(originalQuestion.getScore());
+                copyQuestion.setSortOrder(originalQuestion.getSortOrder());
+                paperQuestionRepository.insert(copyQuestion);
+            }
+        }
+
+        return loadPaper(ownerUserId, copy.getId());
+    }
+
+    @Transactional
+    public PaperResponse regenerate(Long ownerUserId, Long paperId) {
+        Paper original = requirePaper(ownerUserId, paperId);
+        List<PaperSection> originalSections = paperSectionRepository.selectList(
+                new LambdaQueryWrapper<PaperSection>()
+                        .eq(PaperSection::getPaperId, paperId)
+                        .orderByAsc(PaperSection::getSortOrder));
+
+        List<PaperGenerateRequest.SectionRequest> sectionRequests = originalSections.stream()
+                .map(section -> new PaperGenerateRequest.SectionRequest(
+                        section.getTitle(),
+                        section.getQuestionType(),
+                        section.getQuestionCount(),
+                        section.getScorePerQuestion()
+                ))
+                .toList();
+
+        paperQuestionRepository.delete(new LambdaQueryWrapper<PaperQuestion>()
+                .eq(PaperQuestion::getPaperId, paperId));
+        paperSectionRepository.delete(new LambdaQueryWrapper<PaperSection>()
+                .eq(PaperSection::getPaperId, paperId));
+
+        PaperGenerateRequest request = new PaperGenerateRequest(
+                original.getTitle() + " (重新组卷)",
+                original.getGrade(),
+                original.getPublisher(),
+                original.getSubject(),
+                original.getVolume(),
+                original.getUnit(),
+                original.getChapter(),
+                original.getTotalScore(),
+                GenerationStrategy.BANK_FIRST,
+                null,
+                sectionRequests
+        );
+
+        return generate(ownerUserId, request);
+    }
+
+    @Transactional
+    public void save(Long ownerUserId, Long paperId) {
+        Paper paper = requirePaper(ownerUserId, paperId);
+        if (paper.getStatus() == PaperStatus.SAVED) {
+            return;
+        }
+        paper.setStatus(PaperStatus.SAVED);
+        paper.setUpdatedAt(LocalDateTime.now());
+        paperRepository.updateById(paper);
+    }
+
+    @Transactional
+    public void delete(Long ownerUserId, Long paperId) {
+        Paper paper = requirePaper(ownerUserId, paperId);
+        paperQuestionRepository.delete(new LambdaQueryWrapper<PaperQuestion>()
+                .eq(PaperQuestion::getPaperId, paperId));
+        paperSectionRepository.delete(new LambdaQueryWrapper<PaperSection>()
+                .eq(PaperSection::getPaperId, paperId));
+        paperRepository.deleteById(paper);
+    }
+
     public PaperResponse loadPaper(Long ownerUserId, Long paperId) {
         Paper paper = requirePaper(ownerUserId, paperId);
         List<PaperSection> sections = paperSectionRepository.selectList(new LambdaQueryWrapper<PaperSection>()

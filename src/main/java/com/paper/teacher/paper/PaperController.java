@@ -14,6 +14,7 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -100,5 +101,27 @@ public class PaperController {
                         .build()
                         .toString())
                 .body(body);
+    }
+
+    @PostMapping("/{paperId}/copy")
+    public ApiResponse<PaperResponse> copy(@PathVariable Long paperId) {
+        return ApiResponse.ok(paperGenerationService.copy(currentTeacherProvider.id(), paperId));
+    }
+
+    @PostMapping("/{paperId}/regenerate")
+    public ApiResponse<PaperResponse> regenerate(@PathVariable Long paperId) {
+        return ApiResponse.ok(paperGenerationService.regenerate(currentTeacherProvider.id(), paperId));
+    }
+
+    @PostMapping("/{paperId}/save")
+    public ApiResponse<Void> save(@PathVariable Long paperId) {
+        paperGenerationService.save(currentTeacherProvider.id(), paperId);
+        return ApiResponse.ok((Void) null);
+    }
+
+    @DeleteMapping("/{paperId}")
+    public ApiResponse<Void> delete(@PathVariable Long paperId) {
+        paperGenerationService.delete(currentTeacherProvider.id(), paperId);
+        return ApiResponse.ok((Void) null);
     }
 }
