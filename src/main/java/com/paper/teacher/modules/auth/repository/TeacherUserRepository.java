@@ -1,0 +1,10 @@
+package com.paper.teacher.modules.auth.repository;
+
+import com.paper.teacher.modules.auth.entity.TeacherUser;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface TeacherUserRepository extends BaseMapper<TeacherUser> {
+}
