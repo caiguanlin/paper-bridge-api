@@ -13,13 +13,18 @@
 
 ```
 src/main/java/com/paper/teacher/
-├── auth/              # 认证：登录、注册、JWT
-├── curriculum/        # 教材目录：年级、出版社、科目、册别、单元、章节
-├── question/         # 题库：题目 CRUD、Excel 导入
-├── paper/             # 试卷：生成、编辑、导出
-├── template/          # 题型模板：预定义题型结构
-├── ai/                # AI 补题：Deepseek API 调用与校验
-└── common/            # 通用：异常处理、响应封装、获取当前用户
+├── PaperTeacherApplication.java
+├── common/            # 通用：异常处理、响应封装、分页、当前用户
+├── config/            # 配置：Spring Security、Deepseek 参数等
+├── constant/          # 常量与枚举：题型、难度、试卷状态等
+├── controller/        # Web 接口入口：认证、教材、题库、试卷、模板
+└── modules/           # 业务模块：DTO、Entity、Repository、Service
+    ├── auth/          # 认证：登录、注册、JWT
+    ├── curriculum/    # 教材目录：年级、出版社、科目、册别、单元、章节
+    ├── question/      # 题库：题目 CRUD、Excel 导入
+    ├── paper/         # 试卷：生成、编辑、导出
+    ├── template/      # 题型模板：预定义题型结构
+    └── ai/            # AI 补题：Deepseek API 调用与校验
 ```
 
 
