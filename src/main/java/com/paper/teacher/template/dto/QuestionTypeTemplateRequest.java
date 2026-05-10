@@ -13,8 +13,6 @@ import java.util.List;
 
 public record QuestionTypeTemplateRequest(
         @NotBlank(message = "模板名称不能为空") String name,
-        @NotNull(message = "总分不能为空") @DecimalMin(value = "0.01", message = "总分必须大于 0") BigDecimal totalScore,
-        Integer sortOrder,
         @NotEmpty(message = "至少需要一个题型配置") List<@Valid ItemRequest> items
 ) {
     public record ItemRequest(

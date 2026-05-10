@@ -34,12 +34,11 @@ public class QuestionTypeTemplateService {
 
     @Transactional
     public QuestionTypeTemplateResponse create(QuestionTypeTemplateRequest request) {
-        validateSubtotal(request);
         LocalDateTime now = LocalDateTime.now();
         QuestionTypeTemplate template = new QuestionTypeTemplate();
         template.setName(request.name());
-        template.setTotalScore(request.totalScore());
-        template.setSortOrder(request.sortOrder() == null ? 0 : request.sortOrder());
+        template.setTotalScore(calculateTotalScore(request.items()));
+        template.setSortOrder(0);
         template.setCreatedAt(now);
         template.setUpdatedAt(now);
         templateRepository.insert(template);
@@ -49,11 +48,9 @@ public class QuestionTypeTemplateService {
 
     @Transactional
     public QuestionTypeTemplateResponse update(Long id, QuestionTypeTemplateRequest request) {
-        validateSubtotal(request);
         QuestionTypeTemplate template = findTemplate(id);
         template.setName(request.name());
-        template.setTotalScore(request.totalScore());
-        template.setSortOrder(request.sortOrder() == null ? 0 : request.sortOrder());
+        template.setTotalScore(calculateTotalScore(request.items()));
         template.setUpdatedAt(LocalDateTime.now());
         templateRepository.updateById(template);
         itemRepository.delete(new LambdaUpdateWrapper<QuestionTypeTemplateItem>()
@@ -100,12 +97,9 @@ public class QuestionTypeTemplateService {
         }
     }
 
-    private void validateSubtotal(QuestionTypeTemplateRequest request) {
-        BigDecimal subtotal = request.items().stream()
+    private BigDecimal calculateTotalScore(List<QuestionTypeTemplateRequest.ItemRequest> items) {
+        return items.stream()
                 .map(QuestionTypeTemplateRequest.ItemRequest::subtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        if (subtotal.compareTo(request.totalScore()) != 0) {
-            throw new BusinessException("题型配置小计必须等于模板总分");
-        }
     }
 }

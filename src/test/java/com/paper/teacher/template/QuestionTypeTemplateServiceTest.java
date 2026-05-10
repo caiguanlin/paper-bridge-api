@@ -39,17 +39,10 @@ class QuestionTypeTemplateServiceTest {
     }
 
     @Test
-    void createRejectsSubtotalMismatch() {
-        assertThatThrownBy(() -> service.create(request(BigDecimal.valueOf(99))))
-                .isInstanceOf(BusinessException.class)
-                .hasMessage("题型配置小计必须等于模板总分");
-    }
-
-    @Test
     void updateRejectsMissingTemplate() {
         when(templateRepository.selectById(99L)).thenReturn(null);
 
-        assertThatThrownBy(() -> service.update(99L, request(BigDecimal.valueOf(100))))
+        assertThatThrownBy(() -> service.update(99L, request()))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("题型配置模板不存在");
     }
@@ -59,23 +52,23 @@ class QuestionTypeTemplateServiceTest {
         QuestionTypeTemplate saved = template(1L);
         doAnswer(invocation -> {
             QuestionTypeTemplate template = invocation.getArgument(0);
+            assertThat(template.getTotalScore()).isEqualByComparingTo(BigDecimal.valueOf(100));
+            assertThat(template.getSortOrder()).isZero();
             template.setId(1L);
             return 1;
         }).when(templateRepository).insert(any(QuestionTypeTemplate.class));
         when(templateRepository.selectById(1L)).thenReturn(saved);
         when(itemRepository.selectList(any(Wrapper.class))).thenReturn(List.of(item(11L)));
 
-        var response = service.create(request(BigDecimal.valueOf(100)));
+        var response = service.create(request());
 
         assertThat(response.id()).isEqualTo(1L);
         verify(itemRepository, times(2)).insert(any(QuestionTypeTemplateItem.class));
     }
 
-    private QuestionTypeTemplateRequest request(BigDecimal totalScore) {
+    private QuestionTypeTemplateRequest request() {
         return new QuestionTypeTemplateRequest(
                 "100分基础模板",
-                totalScore,
-                1,
                 List.of(
                         new QuestionTypeTemplateRequest.ItemRequest(
                                 "选择题",
