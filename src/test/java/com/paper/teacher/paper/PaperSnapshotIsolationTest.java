@@ -1,10 +1,11 @@
-package com.paper.teacher.paper;
+﻿package com.paper.teacher.paper;
 
-import com.paper.teacher.paper.dto.PaperQuestionUpdateRequest;
-import com.paper.teacher.question.Question;
-import com.paper.teacher.question.QuestionRepository;
-import com.paper.teacher.question.QuestionType;
-import com.paper.teacher.question.QuestionValidator;
+import com.paper.teacher.modules.paper.*;
+import com.paper.teacher.modules.paper.dto.PaperQuestionUpdateRequest;
+import com.paper.teacher.modules.question.Question;
+import com.paper.teacher.modules.question.QuestionRepository;
+import com.paper.teacher.constant.enums.QuestionTypeEnum;
+import com.paper.teacher.modules.question.QuestionValidator;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -36,7 +37,7 @@ class PaperSnapshotIsolationTest {
 
         PaperSection section = new PaperSection();
         section.setId(2L);
-        section.setQuestionType(QuestionType.TRUE_FALSE);
+        section.setQuestionType(QuestionTypeEnum.TRUE_FALSE);
         when(sectionRepository.selectById(2L)).thenReturn(section);
 
         PaperQuestion snapshot = new PaperQuestion();

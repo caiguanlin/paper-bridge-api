@@ -1,10 +1,13 @@
 package com.paper.teacher.ai;
 
+import com.paper.teacher.constant.enums.DifficultyEnum;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.paper.teacher.common.BusinessException;
-import com.paper.teacher.question.Difficulty;
-import com.paper.teacher.question.QuestionType;
-import com.paper.teacher.question.QuestionValidator;
+import com.paper.teacher.constant.enums.QuestionTypeEnum;
+import com.paper.teacher.modules.ai.AiQuestionGenerationResponse;
+import com.paper.teacher.modules.ai.AiQuestionValidator;
+import com.paper.teacher.modules.question.QuestionValidator;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -15,8 +18,8 @@ class AiQuestionValidatorTest {
     @Test
     void acceptsValidAiQuestion() {
         validator.validate(new AiQuestionGenerationResponse(
-                QuestionType.TRUE_FALSE,
-                Difficulty.EASY,
+                QuestionTypeEnum.TRUE_FALSE,
+                DifficultyEnum.EASY,
                 "1 是数字",
                 "{\"statement\":\"1 是数字\"}",
                 "{\"correctBoolean\":true}",
@@ -27,8 +30,8 @@ class AiQuestionValidatorTest {
     @Test
     void rejectsInvalidAiQuestion() {
         assertThatThrownBy(() -> validator.validate(new AiQuestionGenerationResponse(
-                QuestionType.TRUE_FALSE,
-                Difficulty.EASY,
+                QuestionTypeEnum.TRUE_FALSE,
+                DifficultyEnum.EASY,
                 "1 是数字",
                 "{\"statement\":\"1 是数字\"}",
                 "{\"correctBoolean\":\"是\"}",

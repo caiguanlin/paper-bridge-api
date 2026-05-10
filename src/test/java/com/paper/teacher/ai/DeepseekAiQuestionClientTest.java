@@ -1,9 +1,14 @@
 package com.paper.teacher.ai;
 
+import com.paper.teacher.config.DeepseekAiProperties;
+import com.paper.teacher.constant.enums.DifficultyEnum;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.paper.teacher.common.BusinessException;
-import com.paper.teacher.question.Difficulty;
-import com.paper.teacher.question.QuestionType;
+import com.paper.teacher.constant.enums.QuestionTypeEnum;
+import com.paper.teacher.modules.ai.AiQuestionGenerationRequest;
+import com.paper.teacher.modules.ai.AiQuestionGenerationResponse;
+import com.paper.teacher.modules.ai.DeepseekAiQuestionClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -64,8 +69,8 @@ class DeepseekAiQuestionClientTest {
         List<AiQuestionGenerationResponse> responses = client.generate(request());
 
         assertThat(responses).containsExactly(new AiQuestionGenerationResponse(
-                QuestionType.TRUE_FALSE,
-                Difficulty.EASY,
+                QuestionTypeEnum.TRUE_FALSE,
+                DifficultyEnum.EASY,
                 "1 是数字。",
                 "{\"statement\":\"1 是数字。\"}",
                 "{\"correctBoolean\":true}",
@@ -118,8 +123,8 @@ class DeepseekAiQuestionClientTest {
                 "MATH",
                 "Volume 1",
                 "精确章节：Unit 3 / Measurement; Unit 3 / Kilometer",
-                QuestionType.TRUE_FALSE,
-                Difficulty.EASY,
+                QuestionTypeEnum.TRUE_FALSE,
+                DifficultyEnum.EASY,
                 1,
                 BigDecimal.TEN
         );

@@ -1,6 +1,7 @@
-package com.paper.teacher.template;
+﻿package com.paper.teacher.template;
 
-import com.paper.teacher.template.dto.QuestionTypeTemplateRequest;
+import com.paper.teacher.controller.QuestionTypeTemplateController;
+import com.paper.teacher.modules.template.dto.QuestionTypeTemplateRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;

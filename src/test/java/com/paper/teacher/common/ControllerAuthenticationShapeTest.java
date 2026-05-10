@@ -1,10 +1,10 @@
-package com.paper.teacher.common;
+﻿package com.paper.teacher.common;
 
-import com.paper.teacher.paper.PaperController;
-import com.paper.teacher.question.QuestionController;
-import com.paper.teacher.auth.AuthController;
-import com.paper.teacher.curriculum.CurriculumController;
-import com.paper.teacher.template.QuestionTypeTemplateController;
+import com.paper.teacher.controller.PaperController;
+import com.paper.teacher.controller.QuestionController;
+import com.paper.teacher.controller.AuthController;
+import com.paper.teacher.controller.CurriculumController;
+import com.paper.teacher.controller.QuestionTypeTemplateController;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 

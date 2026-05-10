@@ -1,9 +1,11 @@
 package com.paper.teacher.paper.dto;
 
-import com.paper.teacher.paper.GenerationStrategy;
-import com.paper.teacher.paper.PaperScopeType;
-import com.paper.teacher.question.Difficulty;
-import com.paper.teacher.question.QuestionType;
+import com.paper.teacher.constant.enums.DifficultyEnum;
+
+import com.paper.teacher.constant.enums.GenerationStrategyEnum;
+import com.paper.teacher.constant.enums.PaperScopeTypeEnum;
+import com.paper.teacher.constant.enums.QuestionTypeEnum;
+import com.paper.teacher.modules.paper.dto.PaperGenerateRequest;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
@@ -17,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class PaperGenerateRequestTest {
     @Test
     void chapterScopeRequiresAtLeastOneChapter() {
-        assertThat(validator().validate(request(PaperScopeType.CHAPTERS, null, List.of())))
+        assertThat(validator().validate(request(PaperScopeTypeEnum.CHAPTERS, null, List.of())))
                 .anySatisfy(violation -> assertThat(violation.getPropertyPath().toString()).isEqualTo("chapterScopeValid"));
     }
 
@@ -28,19 +30,19 @@ class PaperGenerateRequestTest {
                 new PaperGenerateRequest.ChapterScope("Unit 1", " ")
         );
 
-        assertThat(validator().validate(request(PaperScopeType.CHAPTERS, null, chapters)))
+        assertThat(validator().validate(request(PaperScopeTypeEnum.CHAPTERS, null, chapters)))
                 .anySatisfy(violation -> assertThat(violation.getPropertyPath().toString()).isEqualTo("chapters[1].chapter"));
     }
 
     @Test
     void unitScopeRequiresAtLeastOneUnit() {
-        assertThat(validator().validate(request(PaperScopeType.UNITS, List.of(), null)))
+        assertThat(validator().validate(request(PaperScopeTypeEnum.UNITS, List.of(), null)))
                 .anySatisfy(violation -> assertThat(violation.getPropertyPath().toString()).isEqualTo("unitScopeValid"));
     }
 
     @Test
     void volumeScopeDoesNotRequireUnitsOrChapters() {
-        assertThat(validator().validate(request(PaperScopeType.VOLUME, null, null))).isEmpty();
+        assertThat(validator().validate(request(PaperScopeTypeEnum.VOLUME, null, null))).isEmpty();
     }
 
     private Validator validator() {
@@ -49,7 +51,7 @@ class PaperGenerateRequestTest {
     }
 
     private PaperGenerateRequest request(
-            PaperScopeType scopeType,
+            PaperScopeTypeEnum scopeType,
             List<String> units,
             List<PaperGenerateRequest.ChapterScope> chapters
     ) {
@@ -63,11 +65,11 @@ class PaperGenerateRequestTest {
                 units,
                 chapters,
                 BigDecimal.TEN,
-                GenerationStrategy.BANK_WITH_AI,
-                Difficulty.MEDIUM,
+                GenerationStrategyEnum.BANK_WITH_AI,
+                DifficultyEnum.MEDIUM,
                 List.of(new PaperGenerateRequest.SectionRequest(
                         "True or False",
-                        QuestionType.TRUE_FALSE,
+                        QuestionTypeEnum.TRUE_FALSE,
                         1,
                         BigDecimal.TEN
                 ))

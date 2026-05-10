@@ -1,9 +1,12 @@
-package com.paper.teacher.curriculum;
+﻿package com.paper.teacher.curriculum;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.paper.teacher.common.BusinessException;
-import com.paper.teacher.curriculum.dto.CurriculumSearchRequest;
-import com.paper.teacher.curriculum.dto.CurriculumUpsertRequest;
+import com.paper.teacher.modules.curriculum.CurriculumNode;
+import com.paper.teacher.modules.curriculum.CurriculumRepository;
+import com.paper.teacher.modules.curriculum.CurriculumService;
+import com.paper.teacher.modules.curriculum.dto.CurriculumSearchRequest;
+import com.paper.teacher.modules.curriculum.dto.CurriculumUpsertRequest;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

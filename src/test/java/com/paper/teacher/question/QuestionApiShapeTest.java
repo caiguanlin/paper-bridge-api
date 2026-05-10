@@ -1,5 +1,7 @@
-package com.paper.teacher.question;
+﻿package com.paper.teacher.question;
 
+import com.paper.teacher.controller.QuestionController;
+import com.paper.teacher.modules.question.QuestionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -12,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class QuestionApiShapeTest {
     @Test
     void searchUsesRequestObjectForFilters() throws Exception {
-        Class<?> searchRequestType = Class.forName("com.paper.teacher.question.dto.QuestionSearchRequest");
+        Class<?> searchRequestType = Class.forName("com.paper.teacher.modules.question.dto.QuestionSearchRequest");
 
         assertThat(Arrays.stream(searchRequestType.getRecordComponents()).map(component -> component.getName()))
                 .containsExactly(

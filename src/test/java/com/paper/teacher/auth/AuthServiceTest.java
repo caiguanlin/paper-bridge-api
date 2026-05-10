@@ -1,8 +1,12 @@
 package com.paper.teacher.auth;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
-import com.paper.teacher.auth.dto.LoginRequest;
-import com.paper.teacher.auth.dto.RegisterRequest;
+import com.paper.teacher.modules.auth.AuthService;
+import com.paper.teacher.modules.auth.JwtTokenService;
+import com.paper.teacher.modules.auth.TeacherUser;
+import com.paper.teacher.modules.auth.TeacherUserRepository;
+import com.paper.teacher.modules.auth.dto.LoginRequest;
+import com.paper.teacher.modules.auth.dto.RegisterRequest;
 import com.paper.teacher.common.BusinessException;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;

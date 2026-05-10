@@ -1,7 +1,10 @@
 package com.paper.teacher.question;
 
-import com.paper.teacher.question.dto.QuestionCreateRequest;
-import com.paper.teacher.question.importexcel.QuestionExcelImporter;
+import com.paper.teacher.constant.enums.QuestionSourceEnum;
+
+import com.paper.teacher.modules.question.QuestionService;
+import com.paper.teacher.modules.question.dto.QuestionCreateRequest;
+import com.paper.teacher.modules.question.importexcel.QuestionExcelImporter;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
@@ -20,7 +23,7 @@ class QuestionExcelImporterTest {
         QuestionService questionService = mock(QuestionService.class);
         doThrow(new IllegalArgumentException("题目内容 JSON 不合法"))
                 .when(questionService)
-                .create(eq(1L), any(QuestionCreateRequest.class), eq(QuestionSource.EXCEL_IMPORT));
+                .create(eq(1L), any(QuestionCreateRequest.class), eq(QuestionSourceEnum.EXCEL_IMPORT));
 
         QuestionExcelImporter importer = new QuestionExcelImporter(questionService);
         MockMultipartFile file = new MockMultipartFile(

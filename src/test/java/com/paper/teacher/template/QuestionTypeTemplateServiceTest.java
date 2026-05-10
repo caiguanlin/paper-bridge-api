@@ -1,9 +1,10 @@
-package com.paper.teacher.template;
+﻿package com.paper.teacher.template;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.paper.teacher.common.BusinessException;
-import com.paper.teacher.question.QuestionType;
-import com.paper.teacher.template.dto.QuestionTypeTemplateRequest;
+import com.paper.teacher.constant.enums.QuestionTypeEnum;
+import com.paper.teacher.modules.template.*;
+import com.paper.teacher.modules.template.dto.QuestionTypeTemplateRequest;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -34,7 +35,7 @@ class QuestionTypeTemplateServiceTest {
         assertThat(templates).singleElement().satisfies(response -> {
             assertThat(response.name()).isEqualTo("100分基础模板");
             assertThat(response.items()).singleElement()
-                    .satisfies(item -> assertThat(item.questionType()).isEqualTo(QuestionType.SINGLE_CHOICE));
+                    .satisfies(item -> assertThat(item.questionType()).isEqualTo(QuestionTypeEnum.SINGLE_CHOICE));
         });
     }
 
@@ -72,13 +73,13 @@ class QuestionTypeTemplateServiceTest {
                 List.of(
                         new QuestionTypeTemplateRequest.ItemRequest(
                                 "选择题",
-                                QuestionType.SINGLE_CHOICE,
+                                QuestionTypeEnum.SINGLE_CHOICE,
                                 10,
                                 BigDecimal.valueOf(5)
                         ),
                         new QuestionTypeTemplateRequest.ItemRequest(
                                 "填空题",
-                                QuestionType.FILL_BLANK,
+                                QuestionTypeEnum.FILL_BLANK,
                                 10,
                                 BigDecimal.valueOf(5)
                         )
@@ -100,7 +101,7 @@ class QuestionTypeTemplateServiceTest {
         item.setId(id);
         item.setTemplateId(1L);
         item.setTitle("选择题");
-        item.setQuestionType(QuestionType.SINGLE_CHOICE);
+        item.setQuestionType(QuestionTypeEnum.SINGLE_CHOICE);
         item.setQuestionCount(10);
         item.setScorePerQuestion(BigDecimal.valueOf(5));
         item.setSortOrder(1);

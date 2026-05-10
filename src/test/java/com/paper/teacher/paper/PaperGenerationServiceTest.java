@@ -1,15 +1,20 @@
 package com.paper.teacher.paper;
 
+import com.paper.teacher.constant.enums.DifficultyEnum;
+import com.paper.teacher.constant.enums.GenerationStrategyEnum;
+import com.paper.teacher.constant.enums.PaperScopeTypeEnum;
+import com.paper.teacher.constant.enums.PaperStatusEnum;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.paper.teacher.ai.AiQuestionClient;
-import com.paper.teacher.ai.AiQuestionGenerationRequest;
-import com.paper.teacher.ai.AiQuestionGenerationResponse;
-import com.paper.teacher.ai.AiQuestionValidator;
+import com.paper.teacher.modules.ai.AiQuestionClient;
+import com.paper.teacher.modules.ai.AiQuestionGenerationRequest;
+import com.paper.teacher.modules.ai.AiQuestionGenerationResponse;
+import com.paper.teacher.modules.ai.AiQuestionValidator;
 import com.paper.teacher.common.BusinessException;
-import com.paper.teacher.paper.dto.PaperGenerateRequest;
-import com.paper.teacher.question.Difficulty;
-import com.paper.teacher.question.QuestionRepository;
-import com.paper.teacher.question.QuestionType;
+import com.paper.teacher.modules.paper.*;
+import com.paper.teacher.modules.paper.dto.PaperGenerateRequest;
+import com.paper.teacher.modules.question.QuestionRepository;
+import com.paper.teacher.constant.enums.QuestionTypeEnum;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -89,7 +94,7 @@ class PaperGenerationServiceTest {
         verify(aiQuestionClient).generate(captor.capture());
         assertThat(captor.getValue().count()).isEqualTo(2);
         assertThat(captor.getValue().scopeDescription()).contains("第三单元 / 测量", "第三单元 / 千米的认识");
-        assertThat(savedPaper.get().getScopeType()).isEqualTo(PaperScopeType.CHAPTERS);
+        assertThat(savedPaper.get().getScopeType()).isEqualTo(PaperScopeTypeEnum.CHAPTERS);
         assertThat(savedPaper.get().getChapter()).isEqualTo("第三单元 / 测量, 第三单元 / 千米的认识");
         assertThat(response.sections()).hasSize(1);
         assertThat(response.sections().getFirst().questions()).hasSize(2);
@@ -107,17 +112,17 @@ class PaperGenerationServiceTest {
         original.setVolume("Volume 1");
         original.setUnit("Unit 1, Unit 2");
         original.setChapter("全部章节");
-        original.setScopeType(PaperScopeType.UNITS);
+        original.setScopeType(PaperScopeTypeEnum.UNITS);
         original.setScopePayloadJson("""
                 {"scopeType":"UNITS","units":["Unit 1","Unit 2"],"chapters":null}
                 """);
         original.setTotalScore(BigDecimal.TEN);
-        original.setStatus(PaperStatus.DRAFT);
+        original.setStatus(PaperStatusEnum.DRAFT);
 
         PaperSection originalSection = new PaperSection();
         originalSection.setId(6L);
         originalSection.setTitle("True or False");
-        originalSection.setQuestionType(QuestionType.TRUE_FALSE);
+        originalSection.setQuestionType(QuestionTypeEnum.TRUE_FALSE);
         originalSection.setQuestionCount(1);
         originalSection.setScorePerQuestion(BigDecimal.TEN);
         originalSection.setSubtotalScore(BigDecimal.TEN);
@@ -158,7 +163,7 @@ class PaperGenerationServiceTest {
         ArgumentCaptor<AiQuestionGenerationRequest> captor = ArgumentCaptor.forClass(AiQuestionGenerationRequest.class);
         verify(aiQuestionClient).generate(captor.capture());
         assertThat(captor.getValue().scopeDescription()).isEqualTo("单元：Unit 1, Unit 2（全部章节）");
-        assertThat(generatedPaper.get().getScopeType()).isEqualTo(PaperScopeType.UNITS);
+        assertThat(generatedPaper.get().getScopeType()).isEqualTo(PaperScopeTypeEnum.UNITS);
         assertThat(generatedPaper.get().getUnit()).isEqualTo("Unit 1, Unit 2");
         assertThat(generatedPaper.get().getChapter()).isEqualTo("全部章节");
     }
@@ -170,23 +175,23 @@ class PaperGenerationServiceTest {
                 "人教版",
                 "MATH",
                 "上册",
-                PaperScopeType.CHAPTERS,
+                PaperScopeTypeEnum.CHAPTERS,
                 null,
                 List.of(
                         new PaperGenerateRequest.ChapterScope("第三单元", "测量"),
                         new PaperGenerateRequest.ChapterScope("第三单元", "千米的认识")
                 ),
                 totalScore,
-                GenerationStrategy.BANK_WITH_AI,
-                Difficulty.MEDIUM,
-                List.of(new PaperGenerateRequest.SectionRequest("判断题", QuestionType.TRUE_FALSE, count, scorePerQuestion))
+                GenerationStrategyEnum.BANK_WITH_AI,
+                DifficultyEnum.MEDIUM,
+                List.of(new PaperGenerateRequest.SectionRequest("判断题", QuestionTypeEnum.TRUE_FALSE, count, scorePerQuestion))
         );
     }
 
     private AiQuestionGenerationResponse aiQuestion(int index) {
         return new AiQuestionGenerationResponse(
-                QuestionType.TRUE_FALSE,
-                Difficulty.MEDIUM,
+                QuestionTypeEnum.TRUE_FALSE,
+                DifficultyEnum.MEDIUM,
                 "AI 判断题 " + index,
                 "{\"statement\":\"AI 判断题\"}",
                 "{\"correctBoolean\":true}",

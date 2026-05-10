@@ -1,7 +1,8 @@
-package com.paper.teacher.curriculum;
+﻿package com.paper.teacher.curriculum;
 
-import com.paper.teacher.curriculum.dto.CurriculumSearchRequest;
-import com.paper.teacher.curriculum.dto.CurriculumUpsertRequest;
+import com.paper.teacher.controller.CurriculumController;
+import com.paper.teacher.modules.curriculum.dto.CurriculumSearchRequest;
+import com.paper.teacher.modules.curriculum.dto.CurriculumUpsertRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
