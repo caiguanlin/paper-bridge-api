@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
@@ -70,7 +71,7 @@ public class PaperGenerationService {
         paper.setSubject(request.subject());
         paper.setVolume(request.volume());
         paper.setUnit(request.unit());
-        paper.setChapter(request.chapter());
+        paper.setChapter(displayChapters(request.chapters()));
         paper.setTotalScore(request.totalScore());
         paper.setStatus(PaperStatus.DRAFT);
         paper.setCreatedAt(now);
@@ -206,7 +207,7 @@ public class PaperGenerationService {
                 original.getSubject(),
                 original.getVolume(),
                 original.getUnit(),
-                original.getChapter(),
+                splitChapters(original.getChapter()),
                 original.getTotalScore(),
                 GenerationStrategy.BANK_FIRST,
                 null,
@@ -312,7 +313,7 @@ public class PaperGenerationService {
     ) {
         Difficulty difficulty = request.difficulty() == null ? Difficulty.MEDIUM : request.difficulty();
         return aiQuestionClient.generate(new AiQuestionGenerationRequest(
-                request.grade(), request.publisher(), request.subject(), request.volume(), request.unit(), request.chapter(),
+                request.grade(), request.publisher(), request.subject(), request.volume(), request.unit(), request.chapters(),
                 section.questionType(), difficulty, missing, section.scorePerQuestion()
         ));
     }
@@ -344,7 +345,7 @@ public class PaperGenerationService {
                 .eq(Question::getSubject, request.subject())
                 .eq(Question::getVolume, request.volume())
                 .eq(Question::getUnit, request.unit())
-                .eq(Question::getChapter, request.chapter())
+                .in(Question::getChapter, request.chapters())
                 .eq(Question::getQuestionType, type)
                 .eq(difficulty != null, Question::getDifficulty, difficulty);
     }
@@ -360,5 +361,16 @@ public class PaperGenerationService {
         return request.sections().stream()
                 .map(PaperGenerateRequest.SectionRequest::subtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private String displayChapters(List<String> chapters) {
+        return String.join(", ", chapters);
+    }
+
+    private List<String> splitChapters(String chapters) {
+        return Arrays.stream(chapters.split(","))
+                .map(String::trim)
+                .filter(chapter -> !chapter.isBlank())
+                .toList();
     }
 }

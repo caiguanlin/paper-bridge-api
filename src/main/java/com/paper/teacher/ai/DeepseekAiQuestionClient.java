@@ -128,7 +128,7 @@ public class DeepseekAiQuestionClient implements AiQuestionClient {
                 request.subject(),
                 request.volume(),
                 request.unit(),
-                request.chapter(),
+                displayChapters(request.chapters()),
                 request.questionType(),
                 request.difficulty(),
                 request.scorePerQuestion(),
@@ -161,6 +161,10 @@ public class DeepseekAiQuestionClient implements AiQuestionClient {
                     answerJson: {"expectedText":"标准默写内容"}
                     """;
         };
+    }
+
+    private String displayChapters(List<String> chapters) {
+        return String.join(", ", chapters);
     }
 
     private String normalizeBaseUrl(String baseUrl) {

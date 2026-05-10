@@ -57,6 +57,7 @@ class DeepseekAiQuestionClientTest {
                 .andExpect(content().string(containsString("\"model\":\"deepseek-chat\"")))
                 .andExpect(content().string(containsString("\"response_format\":{\"type\":\"json_object\"}")))
                 .andExpect(content().string(containsString("只输出 JSON")))
+                .andExpect(content().string(containsString("Measurement, Kilometer")))
                 .andExpect(content().string(containsString("correctBoolean")))
                 .andRespond(withSuccess(deepseekResponse, MediaType.APPLICATION_JSON));
 
@@ -112,12 +113,12 @@ class DeepseekAiQuestionClientTest {
 
     private AiQuestionGenerationRequest request() {
         return new AiQuestionGenerationRequest(
-                "三年级",
-                "人教版",
+                "Grade 3",
+                "PEP",
                 "MATH",
-                "上册",
-                "第三单元",
-                "测量",
+                "Volume 1",
+                "Unit 3",
+                List.of("Measurement", "Kilometer"),
                 QuestionType.TRUE_FALSE,
                 Difficulty.EASY,
                 1,

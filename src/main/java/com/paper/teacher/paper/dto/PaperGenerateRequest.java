@@ -20,7 +20,7 @@ public record PaperGenerateRequest(
         @NotBlank(message = "科目不能为空") String subject,
         @NotBlank(message = "册别不能为空") String volume,
         @NotBlank(message = "单元不能为空") String unit,
-        @NotBlank(message = "章节不能为空") String chapter,
+        @NotEmpty(message = "至少需要一个章节") List<@NotBlank(message = "章节不能为空") String> chapters,
         @NotNull(message = "总分不能为空") @DecimalMin(value = "0.01", message = "总分必须大于 0") BigDecimal totalScore,
         @NotNull(message = "生成策略不能为空") GenerationStrategy strategy,
         Difficulty difficulty,

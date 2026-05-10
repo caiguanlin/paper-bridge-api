@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -85,8 +86,72 @@ class PaperGenerationServiceTest {
         ArgumentCaptor<AiQuestionGenerationRequest> captor = ArgumentCaptor.forClass(AiQuestionGenerationRequest.class);
         verify(aiQuestionClient).generate(captor.capture());
         assertThat(captor.getValue().count()).isEqualTo(2);
+        assertThat(captor.getValue().chapters()).containsExactly("测量", "千米的认识");
+        assertThat(savedPaper.get().getChapter()).isEqualTo("测量, 千米的认识");
         assertThat(response.sections()).hasSize(1);
         assertThat(response.sections().getFirst().questions()).hasSize(2);
+    }
+
+    @Test
+    void regenerateSplitsSavedChapterDisplayIntoChapterScope() {
+        Paper original = new Paper();
+        original.setId(5L);
+        original.setOwnerUserId(1L);
+        original.setTitle("Original");
+        original.setGrade("Grade 3");
+        original.setPublisher("PEP");
+        original.setSubject("MATH");
+        original.setVolume("Volume 1");
+        original.setUnit("Unit 3");
+        original.setChapter("Measurement, Kilometer");
+        original.setTotalScore(BigDecimal.TEN);
+        original.setStatus(PaperStatus.DRAFT);
+
+        PaperSection originalSection = new PaperSection();
+        originalSection.setId(6L);
+        originalSection.setTitle("True or False");
+        originalSection.setQuestionType(QuestionType.TRUE_FALSE);
+        originalSection.setQuestionCount(1);
+        originalSection.setScorePerQuestion(BigDecimal.TEN);
+        originalSection.setSubtotalScore(BigDecimal.TEN);
+        originalSection.setSortOrder(1);
+
+        AtomicReference<Paper> generatedPaper = new AtomicReference<>();
+        List<PaperSection> generatedSections = new ArrayList<>();
+        List<PaperQuestion> generatedQuestions = new ArrayList<>();
+        AtomicInteger sectionSelectCalls = new AtomicInteger();
+
+        when(paperRepository.selectById(5L)).thenReturn(original);
+        when(paperRepository.insert(any(Paper.class))).thenAnswer(invocation -> {
+            Paper paper = invocation.getArgument(0);
+            paper.setId(10L);
+            generatedPaper.set(paper);
+            return 1;
+        });
+        when(paperRepository.selectById(10L)).thenAnswer(invocation -> generatedPaper.get());
+        when(sectionRepository.selectList(any())).thenAnswer(invocation ->
+                sectionSelectCalls.getAndIncrement() == 0 ? List.of(originalSection) : generatedSections);
+        when(sectionRepository.insert(any(PaperSection.class))).thenAnswer(invocation -> {
+            PaperSection section = invocation.getArgument(0);
+            section.setId(20L);
+            generatedSections.add(section);
+            return 1;
+        });
+        when(paperQuestionRepository.selectList(any())).thenAnswer(invocation -> generatedQuestions);
+        when(paperQuestionRepository.insert(any(PaperQuestion.class))).thenAnswer(invocation -> {
+            PaperQuestion question = invocation.getArgument(0);
+            generatedQuestions.add(question);
+            return 1;
+        });
+        when(questionRepository.selectList(any())).thenReturn(List.of());
+        when(aiQuestionClient.generate(any())).thenReturn(List.of(aiQuestion(1)));
+
+        service.regenerate(1L, 5L);
+
+        ArgumentCaptor<AiQuestionGenerationRequest> captor = ArgumentCaptor.forClass(AiQuestionGenerationRequest.class);
+        verify(aiQuestionClient).generate(captor.capture());
+        assertThat(captor.getValue().chapters()).containsExactly("Measurement", "Kilometer");
+        assertThat(generatedPaper.get().getChapter()).isEqualTo("Measurement, Kilometer");
     }
 
     private PaperGenerateRequest request(BigDecimal totalScore, int count, BigDecimal scorePerQuestion) {
@@ -97,7 +162,7 @@ class PaperGenerationServiceTest {
                 "MATH",
                 "上册",
                 "第三单元",
-                "测量",
+                List.of("测量", "千米的认识"),
                 totalScore,
                 GenerationStrategy.BANK_WITH_AI,
                 Difficulty.MEDIUM,
