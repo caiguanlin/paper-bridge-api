@@ -1,4 +1,4 @@
-﻿package com.paper.teacher.modules.paper.dto;
+package com.paper.teacher.modules.paper.dto;
 
 import com.paper.teacher.constant.enums.QuestionTypeEnum;
 

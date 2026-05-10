@@ -1,8 +1,8 @@
 package com.paper.teacher.modules.template.dto;
 
 import com.paper.teacher.constant.enums.QuestionTypeEnum;
-import com.paper.teacher.modules.template.QuestionTypeTemplate;
-import com.paper.teacher.modules.template.QuestionTypeTemplateItem;
+import com.paper.teacher.modules.template.entity.QuestionTypeTemplate;
+import com.paper.teacher.modules.template.entity.QuestionTypeTemplateItem;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

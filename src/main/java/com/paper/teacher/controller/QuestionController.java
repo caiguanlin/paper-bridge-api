@@ -4,7 +4,7 @@ import com.paper.teacher.constant.enums.QuestionSourceEnum;
 
 import com.paper.teacher.common.ApiResponse;
 import com.paper.teacher.common.CurrentTeacherProvider;
-import com.paper.teacher.modules.question.QuestionService;
+import com.paper.teacher.modules.question.service.QuestionService;
 import com.paper.teacher.modules.question.dto.QuestionCreateRequest;
 import com.paper.teacher.modules.question.dto.QuestionImportResult;
 import com.paper.teacher.modules.question.dto.QuestionResponse;

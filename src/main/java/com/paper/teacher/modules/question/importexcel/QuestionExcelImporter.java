@@ -6,7 +6,7 @@ import com.paper.teacher.constant.enums.QuestionSourceEnum;
 import com.paper.teacher.constant.enums.QuestionTypeEnum;
 import com.paper.teacher.modules.question.dto.QuestionCreateRequest;
 import com.paper.teacher.modules.question.dto.QuestionImportResult;
-import com.paper.teacher.modules.question.QuestionService;
+import com.paper.teacher.modules.question.service.QuestionService;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DataFormatter;

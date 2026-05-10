@@ -1,8 +1,8 @@
-﻿package com.paper.teacher.modules.paper.dto;
+package com.paper.teacher.modules.paper.dto;
 
-import com.paper.teacher.modules.paper.Paper;
-import com.paper.teacher.modules.paper.PaperQuestion;
-import com.paper.teacher.modules.paper.PaperSection;
+import com.paper.teacher.modules.paper.entity.Paper;
+import com.paper.teacher.modules.paper.entity.PaperQuestion;
+import com.paper.teacher.modules.paper.entity.PaperSection;
 import com.paper.teacher.constant.enums.PaperStatusEnum;
 import com.paper.teacher.constant.enums.QuestionSourceEnum;
 import com.paper.teacher.constant.enums.QuestionTypeEnum;

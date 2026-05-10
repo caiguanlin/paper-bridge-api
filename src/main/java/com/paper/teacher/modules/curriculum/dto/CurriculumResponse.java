@@ -1,6 +1,6 @@
-﻿package com.paper.teacher.modules.curriculum.dto;
+package com.paper.teacher.modules.curriculum.dto;
 
-import com.paper.teacher.modules.curriculum.CurriculumNode;
+import com.paper.teacher.modules.curriculum.entity.CurriculumNode;
 
 public record CurriculumResponse(
         Long id,

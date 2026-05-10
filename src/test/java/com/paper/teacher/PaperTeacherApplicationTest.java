@@ -1,7 +1,7 @@
-﻿package com.paper.teacher;
+package com.paper.teacher;
 
-import com.paper.teacher.modules.ai.AiQuestionClient;
-import com.paper.teacher.modules.ai.DeepseekAiQuestionClient;
+import com.paper.teacher.modules.ai.service.AiQuestionClient;
+import com.paper.teacher.modules.ai.service.DeepseekAiQuestionClient;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

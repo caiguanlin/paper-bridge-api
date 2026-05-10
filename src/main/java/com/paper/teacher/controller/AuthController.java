@@ -1,6 +1,6 @@
 package com.paper.teacher.controller;
 
-import com.paper.teacher.modules.auth.AuthService;
+import com.paper.teacher.modules.auth.service.AuthService;
 import com.paper.teacher.modules.auth.dto.AuthResponse;
 import com.paper.teacher.modules.auth.dto.LoginRequest;
 import com.paper.teacher.modules.auth.dto.RegisterRequest;

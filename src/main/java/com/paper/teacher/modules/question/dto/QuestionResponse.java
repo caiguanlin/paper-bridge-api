@@ -2,7 +2,7 @@ package com.paper.teacher.modules.question.dto;
 
 import com.paper.teacher.constant.enums.DifficultyEnum;
 
-import com.paper.teacher.modules.question.Question;
+import com.paper.teacher.modules.question.entity.Question;
 import com.paper.teacher.constant.enums.QuestionSourceEnum;
 import com.paper.teacher.constant.enums.QuestionTypeEnum;
 

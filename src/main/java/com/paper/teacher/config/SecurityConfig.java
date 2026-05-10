@@ -1,6 +1,6 @@
-﻿package com.paper.teacher.config;
+package com.paper.teacher.config;
 
-import com.paper.teacher.modules.auth.JwtAuthenticationFilter;
+import com.paper.teacher.modules.auth.service.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

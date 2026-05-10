@@ -2,9 +2,9 @@ package com.paper.teacher.controller;
 
 import com.paper.teacher.common.ApiResponse;
 import com.paper.teacher.common.CurrentTeacherProvider;
-import com.paper.teacher.modules.paper.PaperEditService;
-import com.paper.teacher.modules.paper.PaperExportService;
-import com.paper.teacher.modules.paper.PaperGenerationService;
+import com.paper.teacher.modules.paper.service.PaperEditService;
+import com.paper.teacher.modules.paper.service.PaperExportService;
+import com.paper.teacher.modules.paper.service.PaperGenerationService;
 import com.paper.teacher.modules.paper.dto.PaperGenerateRequest;
 import com.paper.teacher.modules.paper.dto.PaperPlanPreview;
 import com.paper.teacher.modules.paper.dto.PaperQuestionUpdateRequest;

@@ -1,4 +1,4 @@
-﻿package com.paper.teacher.modules.curriculum.dto;
+package com.paper.teacher.modules.curriculum.dto;
 
 import jakarta.validation.constraints.NotBlank;
 

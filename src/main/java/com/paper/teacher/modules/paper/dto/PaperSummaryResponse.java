@@ -1,6 +1,6 @@
-﻿package com.paper.teacher.modules.paper.dto;
+package com.paper.teacher.modules.paper.dto;
 
-import com.paper.teacher.modules.paper.Paper;
+import com.paper.teacher.modules.paper.entity.Paper;
 import com.paper.teacher.constant.enums.PaperStatusEnum;
 
 import java.math.BigDecimal;

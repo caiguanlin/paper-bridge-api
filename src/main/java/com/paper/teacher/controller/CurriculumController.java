@@ -1,7 +1,7 @@
 package com.paper.teacher.controller;
 
 import com.paper.teacher.common.ApiResponse;
-import com.paper.teacher.modules.curriculum.CurriculumService;
+import com.paper.teacher.modules.curriculum.service.CurriculumService;
 import com.paper.teacher.modules.curriculum.dto.CurriculumResponse;
 import com.paper.teacher.modules.curriculum.dto.CurriculumSearchRequest;
 import com.paper.teacher.modules.curriculum.dto.CurriculumUpsertRequest;

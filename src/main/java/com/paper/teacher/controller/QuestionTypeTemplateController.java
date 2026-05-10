@@ -1,7 +1,7 @@
 package com.paper.teacher.controller;
 
 import com.paper.teacher.common.ApiResponse;
-import com.paper.teacher.modules.template.QuestionTypeTemplateService;
+import com.paper.teacher.modules.template.service.QuestionTypeTemplateService;
 import com.paper.teacher.modules.template.dto.QuestionTypeTemplateRequest;
 import com.paper.teacher.modules.template.dto.QuestionTypeTemplateResponse;
 import jakarta.validation.Valid;
