@@ -99,8 +99,7 @@ public class DeepseekAiQuestionClient implements AiQuestionClient {
                 出版社：%s
                 学科：%s
                 册别：%s
-                单元：%s
-                章节：%s
+                教材范围：%s
                 题型：%s
                 难度：%s
                 每题分值：%s
@@ -127,8 +126,7 @@ public class DeepseekAiQuestionClient implements AiQuestionClient {
                 request.publisher(),
                 request.subject(),
                 request.volume(),
-                request.unit(),
-                displayChapters(request.chapters()),
+                request.scopeDescription(),
                 request.questionType(),
                 request.difficulty(),
                 request.scorePerQuestion(),
@@ -161,10 +159,6 @@ public class DeepseekAiQuestionClient implements AiQuestionClient {
                     answerJson: {"expectedText":"标准默写内容"}
                     """;
         };
-    }
-
-    private String displayChapters(List<String> chapters) {
-        return String.join(", ", chapters);
     }
 
     private String normalizeBaseUrl(String baseUrl) {

@@ -26,6 +26,8 @@ public class Paper {
     private String unit;
     @TableField("chapter_name")
     private String chapter;
+    private PaperScopeType scopeType;
+    private String scopePayloadJson;
     private BigDecimal totalScore;
     private PaperStatus status;
     private LocalDateTime createdAt;

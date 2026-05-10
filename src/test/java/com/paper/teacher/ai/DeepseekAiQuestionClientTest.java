@@ -57,7 +57,7 @@ class DeepseekAiQuestionClientTest {
                 .andExpect(content().string(containsString("\"model\":\"deepseek-chat\"")))
                 .andExpect(content().string(containsString("\"response_format\":{\"type\":\"json_object\"}")))
                 .andExpect(content().string(containsString("只输出 JSON")))
-                .andExpect(content().string(containsString("Measurement, Kilometer")))
+                .andExpect(content().string(containsString("Unit 3 / Measurement; Unit 3 / Kilometer")))
                 .andExpect(content().string(containsString("correctBoolean")))
                 .andRespond(withSuccess(deepseekResponse, MediaType.APPLICATION_JSON));
 
@@ -117,8 +117,7 @@ class DeepseekAiQuestionClientTest {
                 "PEP",
                 "MATH",
                 "Volume 1",
-                "Unit 3",
-                List.of("Measurement", "Kilometer"),
+                "精确章节：Unit 3 / Measurement; Unit 3 / Kilometer",
                 QuestionType.TRUE_FALSE,
                 Difficulty.EASY,
                 1,

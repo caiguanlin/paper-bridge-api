@@ -1,12 +1,15 @@
 package com.paper.teacher.paper;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.paper.teacher.ai.AiQuestionClient;
 import com.paper.teacher.ai.AiQuestionGenerationRequest;
 import com.paper.teacher.ai.AiQuestionGenerationResponse;
 import com.paper.teacher.ai.AiQuestionValidator;
 import com.paper.teacher.common.BusinessException;
 import com.paper.teacher.paper.dto.PaperGenerateRequest;
+import com.paper.teacher.paper.dto.PaperGenerateRequest.ChapterScope;
 import com.paper.teacher.paper.dto.PaperPlanPreview;
 import com.paper.teacher.paper.dto.PaperResponse;
 import com.paper.teacher.paper.dto.PaperSummaryResponse;
@@ -24,19 +27,27 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class PaperGenerationService {
+    private static final String ALL_CHAPTERS_DISPLAY = "全部章节";
+    private static final String WHOLE_VOLUME_DISPLAY = "整册";
+
     private final PaperRepository paperRepository;
     private final PaperSectionRepository paperSectionRepository;
     private final PaperQuestionRepository paperQuestionRepository;
     private final QuestionRepository questionRepository;
     private final AiQuestionClient aiQuestionClient;
     private final AiQuestionValidator aiQuestionValidator;
+    private final ObjectMapper objectMapper;
 
     public PaperPlanPreview preview(Long ownerUserId, PaperGenerateRequest request) {
+        validateScope(request);
         validateScore(request);
         List<PaperPlanPreview.SectionPreview> sections = new ArrayList<>();
         for (PaperGenerateRequest.SectionRequest section : request.sections()) {
@@ -61,8 +72,10 @@ public class PaperGenerationService {
 
     @Transactional
     public PaperResponse generate(Long ownerUserId, PaperGenerateRequest request) {
+        validateScope(request);
         validateScore(request);
         LocalDateTime now = LocalDateTime.now();
+        ScopeDisplay display = scopeDisplay(request);
         Paper paper = new Paper();
         paper.setOwnerUserId(ownerUserId);
         paper.setTitle(request.title());
@@ -70,8 +83,10 @@ public class PaperGenerationService {
         paper.setPublisher(request.publisher());
         paper.setSubject(request.subject());
         paper.setVolume(request.volume());
-        paper.setUnit(request.unit());
-        paper.setChapter(displayChapters(request.chapters()));
+        paper.setUnit(display.unit());
+        paper.setChapter(display.chapter());
+        paper.setScopeType(request.scopeType());
+        paper.setScopePayloadJson(scopePayloadJson(request));
         paper.setTotalScore(request.totalScore());
         paper.setStatus(PaperStatus.DRAFT);
         paper.setCreatedAt(now);
@@ -132,6 +147,8 @@ public class PaperGenerationService {
         copy.setVolume(original.getVolume());
         copy.setUnit(original.getUnit());
         copy.setChapter(original.getChapter());
+        copy.setScopeType(original.getScopeType());
+        copy.setScopePayloadJson(original.getScopePayloadJson());
         copy.setTotalScore(original.getTotalScore());
         copy.setStatus(PaperStatus.DRAFT);
         copy.setCreatedAt(now);
@@ -200,14 +217,16 @@ public class PaperGenerationService {
         paperSectionRepository.delete(new LambdaQueryWrapper<PaperSection>()
                 .eq(PaperSection::getPaperId, paperId));
 
+        ScopeSnapshot scope = scopeSnapshot(original);
         PaperGenerateRequest request = new PaperGenerateRequest(
                 original.getTitle() + " (重新组卷)",
                 original.getGrade(),
                 original.getPublisher(),
                 original.getSubject(),
                 original.getVolume(),
-                original.getUnit(),
-                splitChapters(original.getChapter()),
+                scope.scopeType(),
+                scope.units(),
+                scope.chapters(),
                 original.getTotalScore(),
                 GenerationStrategy.BANK_FIRST,
                 null,
@@ -313,7 +332,7 @@ public class PaperGenerationService {
     ) {
         Difficulty difficulty = request.difficulty() == null ? Difficulty.MEDIUM : request.difficulty();
         return aiQuestionClient.generate(new AiQuestionGenerationRequest(
-                request.grade(), request.publisher(), request.subject(), request.volume(), request.unit(), request.chapters(),
+                request.grade(), request.publisher(), request.subject(), request.volume(), scopeDescription(request),
                 section.questionType(), difficulty, missing, section.scorePerQuestion()
         ));
     }
@@ -338,16 +357,66 @@ public class PaperGenerationService {
     }
 
     private LambdaQueryWrapper<Question> scopeQuery(Long ownerUserId, PaperGenerateRequest request, QuestionType type, Difficulty difficulty) {
-        return new LambdaQueryWrapper<Question>()
+        LambdaQueryWrapper<Question> query = new LambdaQueryWrapper<Question>()
                 .eq(Question::getOwnerUserId, ownerUserId)
                 .eq(Question::getGrade, request.grade())
                 .eq(Question::getPublisher, request.publisher())
                 .eq(Question::getSubject, request.subject())
                 .eq(Question::getVolume, request.volume())
-                .eq(Question::getUnit, request.unit())
-                .in(Question::getChapter, request.chapters())
                 .eq(Question::getQuestionType, type)
                 .eq(difficulty != null, Question::getDifficulty, difficulty);
+
+        switch (request.scopeType()) {
+            case CHAPTERS -> query.and(group -> {
+                List<Map.Entry<String, List<String>>> entries = new ArrayList<>(chapterGroups(request).entrySet());
+                for (int i = 0; i < entries.size(); i++) {
+                    Map.Entry<String, List<String>> entry = entries.get(i);
+                    if (i == 0) {
+                        group.eq(Question::getUnit, entry.getKey()).in(Question::getChapter, entry.getValue());
+                    } else {
+                        group.or(branch -> branch.eq(Question::getUnit, entry.getKey()).in(Question::getChapter, entry.getValue()));
+                    }
+                }
+            });
+            case UNITS -> query.in(Question::getUnit, request.units());
+            case VOLUME -> {
+            }
+        }
+        return query;
+    }
+
+    private Map<String, List<String>> chapterGroups(PaperGenerateRequest request) {
+        return request.chapters().stream().collect(Collectors.groupingBy(
+                ChapterScope::unit,
+                LinkedHashMap::new,
+                Collectors.mapping(ChapterScope::chapter, Collectors.toList())
+        ));
+    }
+
+    private void validateScope(PaperGenerateRequest request) {
+        if (request.scopeType() == null) {
+            throw new BusinessException("组卷范围类型不能为空");
+        }
+        switch (request.scopeType()) {
+            case CHAPTERS -> {
+                if (request.chapters() == null || request.chapters().isEmpty()) {
+                    throw new BusinessException("CHAPTERS 范围必须至少选择一个章节");
+                }
+                if (request.chapters().stream().anyMatch(scope -> isBlank(scope.unit()) || isBlank(scope.chapter()))) {
+                    throw new BusinessException("CHAPTERS 范围中的单元和章节不能为空");
+                }
+            }
+            case UNITS -> {
+                if (request.units() == null || request.units().isEmpty()) {
+                    throw new BusinessException("UNITS 范围必须至少选择一个单元");
+                }
+                if (request.units().stream().anyMatch(this::isBlank)) {
+                    throw new BusinessException("UNITS 范围中的单元不能为空");
+                }
+            }
+            case VOLUME -> {
+            }
+        }
     }
 
     private void validateScore(PaperGenerateRequest request) {
@@ -363,14 +432,65 @@ public class PaperGenerationService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    private String displayChapters(List<String> chapters) {
-        return String.join(", ", chapters);
+    private ScopeDisplay scopeDisplay(PaperGenerateRequest request) {
+        return switch (request.scopeType()) {
+            case CHAPTERS -> new ScopeDisplay(
+                    request.chapters().stream().map(ChapterScope::unit).distinct().collect(Collectors.joining(", ")),
+                    request.chapters().stream().map(scope -> scope.unit() + " / " + scope.chapter()).collect(Collectors.joining(", "))
+            );
+            case UNITS -> new ScopeDisplay(String.join(", ", request.units()), ALL_CHAPTERS_DISPLAY);
+            case VOLUME -> new ScopeDisplay(WHOLE_VOLUME_DISPLAY, ALL_CHAPTERS_DISPLAY);
+        };
     }
 
-    private List<String> splitChapters(String chapters) {
+    private String scopeDescription(PaperGenerateRequest request) {
+        return switch (request.scopeType()) {
+            case CHAPTERS -> "精确章节：" + request.chapters().stream()
+                    .map(scope -> scope.unit() + " / " + scope.chapter())
+                    .collect(Collectors.joining("; "));
+            case UNITS -> "单元：" + String.join(", ", request.units()) + "（全部章节）";
+            case VOLUME -> "整册";
+        };
+    }
+
+    private String scopePayloadJson(PaperGenerateRequest request) {
+        try {
+            return objectMapper.writeValueAsString(new ScopeSnapshot(request.scopeType(), request.units(), request.chapters()));
+        } catch (JsonProcessingException ex) {
+            throw new BusinessException("组卷范围序列化失败：" + ex.getMessage());
+        }
+    }
+
+    private ScopeSnapshot scopeSnapshot(Paper paper) {
+        if (paper.getScopePayloadJson() != null && !paper.getScopePayloadJson().isBlank()) {
+            try {
+                return objectMapper.readValue(paper.getScopePayloadJson(), ScopeSnapshot.class);
+            } catch (JsonProcessingException ex) {
+                throw new BusinessException("组卷范围解析失败：" + ex.getMessage());
+            }
+        }
+        return new ScopeSnapshot(PaperScopeType.CHAPTERS, null, inferLegacyChapterScopes(paper.getUnit(), paper.getChapter()));
+    }
+
+    private List<ChapterScope> inferLegacyChapterScopes(String unit, String chapters) {
         return Arrays.stream(chapters.split(","))
                 .map(String::trim)
                 .filter(chapter -> !chapter.isBlank())
+                .map(chapter -> new ChapterScope(unit, chapter))
                 .toList();
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private record ScopeDisplay(String unit, String chapter) {
+    }
+
+    private record ScopeSnapshot(
+            PaperScopeType scopeType,
+            List<String> units,
+            List<ChapterScope> chapters
+    ) {
     }
 }

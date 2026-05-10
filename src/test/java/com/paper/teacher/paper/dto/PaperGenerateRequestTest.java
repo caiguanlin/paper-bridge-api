@@ -1,6 +1,7 @@
 package com.paper.teacher.paper.dto;
 
 import com.paper.teacher.paper.GenerationStrategy;
+import com.paper.teacher.paper.PaperScopeType;
 import com.paper.teacher.question.Difficulty;
 import com.paper.teacher.question.QuestionType;
 import jakarta.validation.Validation;
@@ -15,15 +16,31 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class PaperGenerateRequestTest {
     @Test
-    void requiresAtLeastOneChapter() {
-        assertThat(validator().validate(request(List.of())))
-                .anySatisfy(violation -> assertThat(violation.getPropertyPath().toString()).isEqualTo("chapters"));
+    void chapterScopeRequiresAtLeastOneChapter() {
+        assertThat(validator().validate(request(PaperScopeType.CHAPTERS, null, List.of())))
+                .anySatisfy(violation -> assertThat(violation.getPropertyPath().toString()).isEqualTo("chapterScopeValid"));
     }
 
     @Test
-    void rejectsBlankChapterEntry() {
-        assertThat(validator().validate(request(List.of("Measurement", " "))))
-                .anySatisfy(violation -> assertThat(violation.getPropertyPath().toString()).isEqualTo("chapters[1].<list element>"));
+    void chapterScopeRejectsBlankChapterEntry() {
+        List<PaperGenerateRequest.ChapterScope> chapters = List.of(
+                new PaperGenerateRequest.ChapterScope("Unit 1", "Chapter 1"),
+                new PaperGenerateRequest.ChapterScope("Unit 1", " ")
+        );
+
+        assertThat(validator().validate(request(PaperScopeType.CHAPTERS, null, chapters)))
+                .anySatisfy(violation -> assertThat(violation.getPropertyPath().toString()).isEqualTo("chapters[1].chapter"));
+    }
+
+    @Test
+    void unitScopeRequiresAtLeastOneUnit() {
+        assertThat(validator().validate(request(PaperScopeType.UNITS, List.of(), null)))
+                .anySatisfy(violation -> assertThat(violation.getPropertyPath().toString()).isEqualTo("unitScopeValid"));
+    }
+
+    @Test
+    void volumeScopeDoesNotRequireUnitsOrChapters() {
+        assertThat(validator().validate(request(PaperScopeType.VOLUME, null, null))).isEmpty();
     }
 
     private Validator validator() {
@@ -31,14 +48,19 @@ class PaperGenerateRequestTest {
         return factory.getValidator();
     }
 
-    private PaperGenerateRequest request(List<String> chapters) {
+    private PaperGenerateRequest request(
+            PaperScopeType scopeType,
+            List<String> units,
+            List<PaperGenerateRequest.ChapterScope> chapters
+    ) {
         return new PaperGenerateRequest(
                 "Grade 3 Math Quiz",
                 "Grade 3",
                 "PEP",
                 "MATH",
                 "Volume 1",
-                "Unit 3",
+                scopeType,
+                units,
                 chapters,
                 BigDecimal.TEN,
                 GenerationStrategy.BANK_WITH_AI,

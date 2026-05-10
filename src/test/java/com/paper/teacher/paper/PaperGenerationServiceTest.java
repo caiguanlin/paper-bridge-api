@@ -1,5 +1,6 @@
 package com.paper.teacher.paper;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.paper.teacher.ai.AiQuestionClient;
 import com.paper.teacher.ai.AiQuestionGenerationRequest;
 import com.paper.teacher.ai.AiQuestionGenerationResponse;
@@ -33,8 +34,9 @@ class PaperGenerationServiceTest {
     private final QuestionRepository questionRepository = mock(QuestionRepository.class);
     private final AiQuestionClient aiQuestionClient = mock(AiQuestionClient.class);
     private final AiQuestionValidator aiQuestionValidator = mock(AiQuestionValidator.class);
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final PaperGenerationService service = new PaperGenerationService(
-            paperRepository, sectionRepository, paperQuestionRepository, questionRepository, aiQuestionClient, aiQuestionValidator
+            paperRepository, sectionRepository, paperQuestionRepository, questionRepository, aiQuestionClient, aiQuestionValidator, objectMapper
     );
 
     @Test
@@ -86,8 +88,9 @@ class PaperGenerationServiceTest {
         ArgumentCaptor<AiQuestionGenerationRequest> captor = ArgumentCaptor.forClass(AiQuestionGenerationRequest.class);
         verify(aiQuestionClient).generate(captor.capture());
         assertThat(captor.getValue().count()).isEqualTo(2);
-        assertThat(captor.getValue().chapters()).containsExactly("测量", "千米的认识");
-        assertThat(savedPaper.get().getChapter()).isEqualTo("测量, 千米的认识");
+        assertThat(captor.getValue().scopeDescription()).contains("第三单元 / 测量", "第三单元 / 千米的认识");
+        assertThat(savedPaper.get().getScopeType()).isEqualTo(PaperScopeType.CHAPTERS);
+        assertThat(savedPaper.get().getChapter()).isEqualTo("第三单元 / 测量, 第三单元 / 千米的认识");
         assertThat(response.sections()).hasSize(1);
         assertThat(response.sections().getFirst().questions()).hasSize(2);
     }
@@ -102,8 +105,12 @@ class PaperGenerationServiceTest {
         original.setPublisher("PEP");
         original.setSubject("MATH");
         original.setVolume("Volume 1");
-        original.setUnit("Unit 3");
-        original.setChapter("Measurement, Kilometer");
+        original.setUnit("Unit 1, Unit 2");
+        original.setChapter("全部章节");
+        original.setScopeType(PaperScopeType.UNITS);
+        original.setScopePayloadJson("""
+                {"scopeType":"UNITS","units":["Unit 1","Unit 2"],"chapters":null}
+                """);
         original.setTotalScore(BigDecimal.TEN);
         original.setStatus(PaperStatus.DRAFT);
 
@@ -150,8 +157,10 @@ class PaperGenerationServiceTest {
 
         ArgumentCaptor<AiQuestionGenerationRequest> captor = ArgumentCaptor.forClass(AiQuestionGenerationRequest.class);
         verify(aiQuestionClient).generate(captor.capture());
-        assertThat(captor.getValue().chapters()).containsExactly("Measurement", "Kilometer");
-        assertThat(generatedPaper.get().getChapter()).isEqualTo("Measurement, Kilometer");
+        assertThat(captor.getValue().scopeDescription()).isEqualTo("单元：Unit 1, Unit 2（全部章节）");
+        assertThat(generatedPaper.get().getScopeType()).isEqualTo(PaperScopeType.UNITS);
+        assertThat(generatedPaper.get().getUnit()).isEqualTo("Unit 1, Unit 2");
+        assertThat(generatedPaper.get().getChapter()).isEqualTo("全部章节");
     }
 
     private PaperGenerateRequest request(BigDecimal totalScore, int count, BigDecimal scorePerQuestion) {
@@ -161,8 +170,12 @@ class PaperGenerationServiceTest {
                 "人教版",
                 "MATH",
                 "上册",
-                "第三单元",
-                List.of("测量", "千米的认识"),
+                PaperScopeType.CHAPTERS,
+                null,
+                List.of(
+                        new PaperGenerateRequest.ChapterScope("第三单元", "测量"),
+                        new PaperGenerateRequest.ChapterScope("第三单元", "千米的认识")
+                ),
                 totalScore,
                 GenerationStrategy.BANK_WITH_AI,
                 Difficulty.MEDIUM,

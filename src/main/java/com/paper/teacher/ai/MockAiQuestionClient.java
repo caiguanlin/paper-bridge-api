@@ -17,17 +17,13 @@ public class MockAiQuestionClient implements AiQuestionClient {
             responses.add(new AiQuestionGenerationResponse(
                     request.questionType(),
                     request.difficulty(),
-                    request.unit() + " " + displayChapters(request.chapters()) + " " + title(request.questionType()) + " AI补题 " + i,
+                    request.scopeDescription() + " " + title(request.questionType()) + " AI补题 " + i,
                     content(request.questionType(), i),
                     answer(request.questionType(), i),
                     "本题由本地 mock AI 生成，用于补足题库缺口。"
             ));
         }
         return responses;
-    }
-
-    private String displayChapters(List<String> chapters) {
-        return String.join(", ", chapters);
     }
 
     private String title(QuestionType type) {

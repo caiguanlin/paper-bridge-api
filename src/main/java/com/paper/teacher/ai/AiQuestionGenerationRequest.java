@@ -4,15 +4,13 @@ import com.paper.teacher.question.Difficulty;
 import com.paper.teacher.question.QuestionType;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 public record AiQuestionGenerationRequest(
         String grade,
         String publisher,
         String subject,
         String volume,
-        String unit,
-        List<String> chapters,
+        String scopeDescription,
         QuestionType questionType,
         Difficulty difficulty,
         int count,
