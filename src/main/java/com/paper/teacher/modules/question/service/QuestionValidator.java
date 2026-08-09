@@ -3,6 +3,7 @@ package com.paper.teacher.modules.question.service;
 import com.paper.teacher.constant.enums.QuestionTypeEnum;
 
 import cn.hutool.core.util.StrUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.paper.teacher.common.BusinessException;
@@ -15,6 +16,9 @@ public class QuestionValidator {
     private final ObjectMapper objectMapper;
 
     public void validate(QuestionTypeEnum type, String contentJson, String answerJson) {
+        if (type == null) {
+            throw new BusinessException("题型不能为空");
+        }
         JsonNode content = readObject(contentJson, "题目内容 JSON 不合法");
         JsonNode answer = readObject(answerJson, "答案 JSON 不合法");
         switch (type) {
@@ -27,17 +31,19 @@ public class QuestionValidator {
     }
 
     private JsonNode readObject(String json, String error) {
-        try {
-            JsonNode node = objectMapper.readTree(json);
-            if (node == null || !node.isObject()) {
-                throw new BusinessException(error);
-            }
-            return node;
-        } catch (BusinessException exception) {
-            throw exception;
-        } catch (Exception exception) {
-            throw new BusinessException(error);
+        if (StrUtil.isBlank(json)) {
+            throw new BusinessException(error + "：内容为空");
         }
+        JsonNode node;
+        try {
+            node = objectMapper.readTree(json);
+        } catch (JsonProcessingException exception) {
+            throw new BusinessException(error + "：" + exception.getOriginalMessage(), exception);
+        }
+        if (node == null || !node.isObject()) {
+            throw new BusinessException(error + "：必须是 JSON 对象");
+        }
+        return node;
     }
 
     private void validateSingleChoice(JsonNode content, JsonNode answer) {

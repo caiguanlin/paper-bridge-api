@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -128,7 +129,7 @@ public class CurriculumService {
 
         private CurriculumTreeNode child(String type, String label, String value, Long id) {
             return children.stream()
-                    .filter(child -> child.type.equals(type) && child.value.equals(value))
+                    .filter(child -> child.type.equals(type) && Objects.equals(child.value, value))
                     .findFirst()
                     .orElseGet(() -> addChild(type, label, value, id));
         }
@@ -141,6 +142,9 @@ public class CurriculumService {
     }
 
     private static String subjectLabel(String subject) {
+        if (subject == null) {
+            return null;
+        }
         return switch (subject) {
             case "CHINESE" -> "语文";
             case "MATH" -> "数学";

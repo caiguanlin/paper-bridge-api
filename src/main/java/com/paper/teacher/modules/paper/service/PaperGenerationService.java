@@ -473,7 +473,7 @@ public class PaperGenerationService {
         try {
             return objectMapper.writeValueAsString(new ScopeSnapshot(request.scopeType(), request.units(), request.chapters()));
         } catch (JsonProcessingException ex) {
-            throw new BusinessException("组卷范围序列化失败：" + ex.getMessage());
+            throw new BusinessException("组卷范围序列化失败：" + ex.getOriginalMessage(), ex);
         }
     }
 
@@ -482,8 +482,11 @@ public class PaperGenerationService {
             try {
                 return objectMapper.readValue(paper.getScopePayloadJson(), ScopeSnapshot.class);
             } catch (JsonProcessingException ex) {
-                throw new BusinessException("组卷范围解析失败：" + ex.getMessage());
+                throw new BusinessException("组卷范围解析失败：" + ex.getOriginalMessage(), ex);
             }
+        }
+        if (isBlank(paper.getUnit()) || isBlank(paper.getChapter())) {
+            throw new BusinessException("试卷缺少组卷范围信息，无法重新组卷");
         }
         return new ScopeSnapshot(PaperScopeTypeEnum.CHAPTERS, null, inferLegacyChapterScopes(paper.getUnit(), paper.getChapter()));
     }
