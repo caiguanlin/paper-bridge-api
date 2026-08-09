@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -40,7 +41,7 @@ public class PaperEditService {
     public void updateQuestion(Long ownerUserId, Long paperId, Long paperQuestionId, PaperQuestionUpdateRequest request) {
         Paper paper = paperGenerationService.requirePaper(ownerUserId, paperId);
         PaperQuestion question = requirePaperQuestion(paperId, paperQuestionId);
-        PaperSection section = paperSectionRepository.selectById(question.getSectionId());
+        PaperSection section = requireSection(question.getSectionId());
         questionValidator.validate(section.getQuestionType(), request.contentSnapshotJson(), request.answerSnapshotJson());
         question.setStemSnapshot(request.stemSnapshot());
         question.setContentSnapshotJson(request.contentSnapshotJson());
@@ -58,7 +59,7 @@ public class PaperEditService {
     public Question saveToBank(Long ownerUserId, Long paperId, Long paperQuestionId) {
         Paper paper = paperGenerationService.requirePaper(ownerUserId, paperId);
         PaperQuestion snapshot = requirePaperQuestion(paperId, paperQuestionId);
-        PaperSection section = paperSectionRepository.selectById(snapshot.getSectionId());
+        PaperSection section = requireSection(snapshot.getSectionId());
         questionValidator.validate(section.getQuestionType(), snapshot.getContentSnapshotJson(), snapshot.getAnswerSnapshotJson());
 
         LocalDateTime now = LocalDateTime.now();
@@ -92,11 +93,20 @@ public class PaperEditService {
         return question;
     }
 
+    private PaperSection requireSection(Long sectionId) {
+        PaperSection section = sectionId == null ? null : paperSectionRepository.selectById(sectionId);
+        if (section == null) {
+            throw new BusinessException("试卷题型大题不存在");
+        }
+        return section;
+    }
+
     private void recalculateSection(PaperSection section) {
         BigDecimal subtotal = paperQuestionRepository.selectList(new LambdaQueryWrapper<PaperQuestion>()
                         .eq(PaperQuestion::getSectionId, section.getId()))
                 .stream()
                 .map(PaperQuestion::getScore)
+                .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         section.setSubtotalScore(subtotal);
         paperSectionRepository.updateById(section);
@@ -107,6 +117,7 @@ public class PaperEditService {
                         .eq(PaperSection::getPaperId, paperId))
                 .stream()
                 .map(PaperSection::getSubtotalScore)
+                .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

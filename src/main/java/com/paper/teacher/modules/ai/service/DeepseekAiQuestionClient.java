@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.paper.teacher.common.BusinessException;
+import com.paper.teacher.common.ExternalServiceException;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -42,18 +43,19 @@ public class DeepseekAiQuestionClient implements AiQuestionClient {
             throw new BusinessException("DeepSeek API Key 未配置");
         }
 
+        DeepseekChatResponse response;
         try {
-            DeepseekChatResponse response = restClient.post()
+            response = restClient.post()
                     .uri("/chat/completions")
                     .contentType(MediaType.APPLICATION_JSON)
                     .header("Authorization", "Bearer " + properties.getApiKey())
                     .body(chatRequest(request))
                     .retrieve()
                     .body(DeepseekChatResponse.class);
-            return parseQuestions(response, request.count());
-        } catch (RestClientException | IllegalArgumentException | JsonProcessingException ex) {
-            throw new BusinessException("DeepSeek 生成题目失败：" + ex.getMessage());
+        } catch (RestClientException ex) {
+            throw new ExternalServiceException("DeepSeek 接口调用失败：" + ex.getMessage(), ex);
         }
+        return parseQuestions(response, request.count());
     }
 
     private DeepseekChatRequest chatRequest(AiQuestionGenerationRequest request) {
@@ -68,21 +70,25 @@ public class DeepseekAiQuestionClient implements AiQuestionClient {
         );
     }
 
-    private List<AiQuestionGenerationResponse> parseQuestions(DeepseekChatResponse response, int expectedCount)
-            throws JsonProcessingException {
+    private List<AiQuestionGenerationResponse> parseQuestions(DeepseekChatResponse response, int expectedCount) {
         if (response == null || response.choices() == null || response.choices().isEmpty()) {
-            throw new IllegalArgumentException("DeepSeek 响应为空");
+            throw new ExternalServiceException("DeepSeek 响应为空");
         }
         Message message = response.choices().getFirst().message();
         if (message == null || message.content() == null || message.content().isBlank()) {
-            throw new IllegalArgumentException("DeepSeek 未返回题目内容");
+            throw new ExternalServiceException("DeepSeek 未返回题目内容");
         }
-        GeneratedQuestions generated = objectMapper.readValue(message.content(), GeneratedQuestions.class);
+        GeneratedQuestions generated;
+        try {
+            generated = objectMapper.readValue(message.content(), GeneratedQuestions.class);
+        } catch (JsonProcessingException ex) {
+            throw new ExternalServiceException("DeepSeek 返回内容不是合法 JSON：" + ex.getOriginalMessage(), ex);
+        }
         if (generated.questions() == null) {
-            throw new IllegalArgumentException("DeepSeek 未返回 questions");
+            throw new ExternalServiceException("DeepSeek 未返回 questions");
         }
         if (generated.questions().size() != expectedCount) {
-            throw new IllegalArgumentException("DeepSeek 返回题目数量不正确，期望 "
+            throw new ExternalServiceException("DeepSeek 返回题目数量不正确，期望 "
                     + expectedCount + "，实际 " + generated.questions().size());
         }
         return generated.questions();
