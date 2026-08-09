@@ -16,6 +16,8 @@ import java.util.Date;
 
 @Service
 public class JwtTokenService {
+    private static final int MIN_SECRET_BYTES = 32;
+
     private final String issuer;
     private final long expiresMinutes;
     private final SecretKey secretKey;
@@ -27,7 +29,16 @@ public class JwtTokenService {
     ) {
         this.issuer = issuer;
         this.expiresMinutes = expiresMinutes;
-        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.secretKey = Keys.hmacShaKeyFor(requireStrongSecret(secret));
+    }
+
+    private static byte[] requireStrongSecret(String secret) {
+        byte[] bytes = secret == null ? new byte[0] : secret.getBytes(StandardCharsets.UTF_8);
+        if (bytes.length < MIN_SECRET_BYTES) {
+            throw new IllegalStateException("app.jwt.secret (env APP_JWT_SECRET) must be configured with at least "
+                    + MIN_SECRET_BYTES + " bytes of random data");
+        }
+        return bytes;
     }
 
     public String issue(TeacherUser user) {

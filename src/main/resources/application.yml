@@ -5,11 +5,15 @@ spring:
   application:
     name: paper-bridge-api
   datasource:
-    url: jdbc:mysql://localhost:3306/paper_teacher?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-    username: root
-    password: root
+    url: ${DB_URL:jdbc:mysql://localhost:3306/paper_teacher?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    username: ${DB_USERNAME:}
+    password: ${DB_PASSWORD:}
   jackson:
     default-property-inclusion: non_null
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
 
 mybatis-plus:
   configuration:
@@ -21,7 +25,7 @@ mybatis-plus:
 app:
   jwt:
     issuer: paper-bridge
-    secret: "paper-bridge-local-development-secret-key-change-before-production"
+    secret: ${APP_JWT_SECRET:}
     expires-minutes: 720
   ai:
     provider: deepseek
