@@ -7,6 +7,7 @@ import com.paper.teacher.constant.enums.QuestionTypeEnum;
 import com.paper.teacher.modules.question.dto.QuestionCreateRequest;
 import com.paper.teacher.modules.question.dto.QuestionImportResult;
 import com.paper.teacher.modules.question.service.QuestionService;
+import com.paper.teacher.common.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DataFormatter;
@@ -18,18 +19,27 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
 public class QuestionExcelImporter {
+    private static final Set<String> ALLOWED_EXTENSIONS = Set.of(".xlsx", ".xls");
+    private static final int MAX_ROWS = 2000;
+
     private final QuestionService questionService;
     private final DataFormatter dataFormatter = new DataFormatter();
 
     public QuestionImportResult importFile(Long ownerUserId, MultipartFile file) {
+        validateFile(file);
         int successCount = 0;
         List<QuestionImportResult.RowError> errors = new ArrayList<>();
         try (var workbook = WorkbookFactory.create(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0);
+            if (sheet.getLastRowNum() > MAX_ROWS) {
+                throw new BusinessException("Excel 行数不能超过 " + MAX_ROWS + " 行");
+            }
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
                 if (row == null || isBlankRow(row)) {
@@ -43,10 +53,24 @@ public class QuestionExcelImporter {
                     errors.add(new QuestionImportResult.RowError(i + 1, "行数据", exception.getMessage()));
                 }
             }
+        } catch (BusinessException exception) {
+            throw exception;
         } catch (Exception exception) {
             errors.add(new QuestionImportResult.RowError(0, "文件", "Excel 文件无法读取"));
         }
         return new QuestionImportResult(successCount, errors.size(), errors);
+    }
+
+    private void validateFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException("请上传 Excel 文件");
+        }
+        String filename = file.getOriginalFilename();
+        String extension = filename == null ? "" : filename.toLowerCase(Locale.ROOT)
+                .substring(Math.max(filename.lastIndexOf('.'), 0));
+        if (!ALLOWED_EXTENSIONS.contains(extension)) {
+            throw new BusinessException("仅支持 .xlsx 或 .xls 格式的 Excel 文件");
+        }
     }
 
     private QuestionCreateRequest toRequest(Row row) {

@@ -28,6 +28,16 @@ src/main/java/com/paper/teacher/
 ```
 
 
+## Configuration
+
+运行前需通过环境变量提供敏感配置（不要写入仓库中的 `application.yml`，本地可用被 gitignore 的 `application-local.yml`）：
+
+| 变量 | 说明 |
+| --- | --- |
+| `APP_JWT_SECRET` | JWT 签名密钥，至少 32 字节随机内容，缺失或过短时应用启动失败 |
+| `DB_URL` / `DB_USERNAME` / `DB_PASSWORD` | MySQL 连接信息 |
+| `DEEPSEEK_API_KEY` | Deepseek API Key |
+
 ## Running Tests
 
 ```bash

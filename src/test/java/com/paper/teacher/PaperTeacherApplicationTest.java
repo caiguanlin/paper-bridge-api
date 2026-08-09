@@ -13,7 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
         "spring.datasource.username=sa",
         "spring.datasource.password=",
         "app.jwt.issuer=paper-bridge",
-        "app.jwt.secret=paper-bridge-local-development-secret-key-change-before-production",
+        "app.jwt.secret=test-only-jwt-secret-not-used-outside-of-tests",
         "app.jwt.expires-minutes=720"
 })
 class PaperTeacherApplicationTest {
