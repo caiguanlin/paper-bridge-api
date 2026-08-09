@@ -6,7 +6,7 @@ import com.paper.teacher.modules.curriculum.entity.CurriculumNode;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.paper.teacher.common.BusinessException;
+import com.paper.teacher.common.Entities;
 import com.paper.teacher.modules.curriculum.dto.CurriculumResponse;
 import com.paper.teacher.modules.curriculum.dto.CurriculumSearchRequest;
 import com.paper.teacher.modules.curriculum.dto.CurriculumUpsertRequest;
@@ -40,10 +40,7 @@ public class CurriculumService {
 
     @Transactional
     public CurriculumResponse update(Long id, CurriculumUpsertRequest request) {
-        CurriculumNode node = curriculumRepository.selectById(id);
-        if (node == null) {
-            throw new BusinessException("教材目录不存在");
-        }
+        CurriculumNode node = Entities.require(curriculumRepository.selectById(id), "教材目录不存在");
         apply(node, request);
         curriculumRepository.updateById(node);
         return CurriculumResponse.from(node);
@@ -51,9 +48,7 @@ public class CurriculumService {
 
     @Transactional
     public void delete(Long id) {
-        if (curriculumRepository.deleteById(id) == 0) {
-            throw new BusinessException("教材目录不存在");
-        }
+        Entities.requireAffected(curriculumRepository.deleteById(id), "教材目录不存在");
     }
 
     public List<CurriculumTreeNode> tree() {

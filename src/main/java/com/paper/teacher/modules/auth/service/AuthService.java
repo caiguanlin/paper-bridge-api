@@ -4,11 +4,11 @@ import com.paper.teacher.modules.auth.repository.TeacherUserRepository;
 
 import com.paper.teacher.modules.auth.entity.TeacherUser;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.paper.teacher.modules.auth.dto.AuthResponse;
 import com.paper.teacher.modules.auth.dto.LoginRequest;
 import com.paper.teacher.modules.auth.dto.RegisterRequest;
 import com.paper.teacher.common.BusinessException;
+import com.paper.teacher.common.Entities;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,11 +25,7 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        TeacherUser existing = teacherUserRepository.selectOne(new LambdaQueryWrapper<TeacherUser>()
-                .eq(TeacherUser::getUsername, request.username()));
-        if (existing != null) {
-            throw new BusinessException("用户名已存在");
-        }
+        Entities.check(teacherUserRepository.findByUsername(request.username()) == null, "用户名已存在");
 
         LocalDateTime now = LocalDateTime.now();
         TeacherUser user = new TeacherUser();
@@ -43,8 +39,7 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        TeacherUser user = teacherUserRepository.selectOne(new LambdaQueryWrapper<TeacherUser>()
-                .eq(TeacherUser::getUsername, request.username()));
+        TeacherUser user = teacherUserRepository.findByUsername(request.username());
         if (user == null || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new BusinessException("用户名或密码错误");
         }

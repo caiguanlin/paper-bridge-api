@@ -12,13 +12,16 @@ import com.paper.teacher.modules.paper.entity.PaperQuestion;
 
 import com.paper.teacher.modules.paper.entity.Paper;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.paper.teacher.common.BusinessException;
+import com.paper.teacher.common.Entities;
+import com.paper.teacher.common.Scores;
+import com.paper.teacher.constant.enums.DifficultyEnum;
 import com.paper.teacher.modules.paper.dto.PaperQuestionUpdateRequest;
+import com.paper.teacher.modules.question.dto.QuestionCreateRequest;
 import com.paper.teacher.modules.question.entity.Question;
 import com.paper.teacher.modules.question.repository.QuestionRepository;
 import com.paper.teacher.constant.enums.QuestionSourceEnum;
 import com.paper.teacher.modules.question.service.QuestionValidator;
+import com.paper.teacher.modules.question.support.Questions;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,52 +64,42 @@ public class PaperEditService {
         PaperSection section = paperSectionRepository.selectById(snapshot.getSectionId());
         questionValidator.validate(section.getQuestionType(), snapshot.getContentSnapshotJson(), snapshot.getAnswerSnapshotJson());
 
-        LocalDateTime now = LocalDateTime.now();
-        Question question = new Question();
-        question.setOwnerUserId(ownerUserId);
-        question.setGrade(paper.getGrade());
-        question.setPublisher(paper.getPublisher());
-        question.setSubject(paper.getSubject());
-        question.setVolume(paper.getVolume());
-        question.setUnit(paper.getUnit());
-        question.setChapter(paper.getChapter());
-        question.setQuestionType(section.getQuestionType());
-        question.setDifficulty(com.paper.teacher.constant.enums.DifficultyEnum.MEDIUM);
-        question.setStem(snapshot.getStemSnapshot());
-        question.setContentJson(snapshot.getContentSnapshotJson());
-        question.setAnswerJson(snapshot.getAnswerSnapshotJson());
-        question.setAnalysis(snapshot.getAnalysisSnapshot());
-        question.setSource(snapshot.getSource() == QuestionSourceEnum.AI ? QuestionSourceEnum.AI : QuestionSourceEnum.MANUAL);
-        question.setUsageCount(0);
-        question.setCreatedAt(now);
-        question.setUpdatedAt(now);
+        QuestionCreateRequest bankRequest = new QuestionCreateRequest(
+                paper.getGrade(),
+                paper.getPublisher(),
+                paper.getSubject(),
+                paper.getVolume(),
+                paper.getUnit(),
+                paper.getChapter(),
+                section.getQuestionType(),
+                DifficultyEnum.MEDIUM,
+                snapshot.getStemSnapshot(),
+                snapshot.getContentSnapshotJson(),
+                snapshot.getAnswerSnapshotJson(),
+                snapshot.getAnalysisSnapshot()
+        );
+        QuestionSourceEnum source = snapshot.getSource() == QuestionSourceEnum.AI
+                ? QuestionSourceEnum.AI
+                : QuestionSourceEnum.MANUAL;
+        Question question = Questions.from(ownerUserId, bankRequest, source, LocalDateTime.now());
         questionRepository.insert(question);
         return question;
     }
 
     private PaperQuestion requirePaperQuestion(Long paperId, Long paperQuestionId) {
-        PaperQuestion question = paperQuestionRepository.selectById(paperQuestionId);
-        if (question == null || !question.getPaperId().equals(paperId)) {
-            throw new BusinessException("试卷题目不存在");
-        }
+        PaperQuestion question = Entities.require(
+                paperQuestionRepository.selectById(paperQuestionId), "试卷题目不存在");
+        Entities.check(question.getPaperId().equals(paperId), "试卷题目不存在");
         return question;
     }
 
     private void recalculateSection(PaperSection section) {
-        BigDecimal subtotal = paperQuestionRepository.selectList(new LambdaQueryWrapper<PaperQuestion>()
-                        .eq(PaperQuestion::getSectionId, section.getId()))
-                .stream()
-                .map(PaperQuestion::getScore)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        section.setSubtotalScore(subtotal);
+        section.setSubtotalScore(Scores.sumOf(
+                paperQuestionRepository.findBySection(section.getId()), PaperQuestion::getScore));
         paperSectionRepository.updateById(section);
     }
 
     private BigDecimal totalScore(Long paperId) {
-        return paperSectionRepository.selectList(new LambdaQueryWrapper<PaperSection>()
-                        .eq(PaperSection::getPaperId, paperId))
-                .stream()
-                .map(PaperSection::getSubtotalScore)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return Scores.sumOf(paperSectionRepository.findByPaper(paperId), PaperSection::getSubtotalScore);
     }
 }

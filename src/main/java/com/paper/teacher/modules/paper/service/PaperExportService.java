@@ -1,5 +1,6 @@
 package com.paper.teacher.modules.paper.service;
 
+import cn.hutool.core.util.StrUtil;
 import com.paper.teacher.modules.paper.dto.PaperResponse;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.text.StringEscapeUtils;
@@ -68,7 +69,7 @@ public class PaperExportService {
                     paragraph(document, index++ + ". " + question.stemSnapshot() + "（" + question.score() + " 分）", false);
                     if (teacherVersion) {
                         paragraph(document, "答案：" + question.answerSnapshotJson(), false);
-                        paragraph(document, "解析：" + nullToEmpty(question.analysisSnapshot()), false);
+                        paragraph(document, "解析：" + StrUtil.nullToEmpty(question.analysisSnapshot()), false);
                     }
                 }
             }
@@ -83,7 +84,7 @@ public class PaperExportService {
         XWPFParagraph paragraph = document.createParagraph();
         XWPFRun run = paragraph.createRun();
         run.setBold(bold);
-        run.setText(nullToEmpty(text));
+        run.setText(StrUtil.nullToEmpty(text));
     }
 
     private boolean isTeacher(String version) {
@@ -91,10 +92,6 @@ public class PaperExportService {
     }
 
     private String escape(String value) {
-        return StringEscapeUtils.escapeHtml4(nullToEmpty(value));
-    }
-
-    private String nullToEmpty(String value) {
-        return value == null ? "" : value;
+        return StringEscapeUtils.escapeHtml4(StrUtil.nullToEmpty(value));
     }
 }
