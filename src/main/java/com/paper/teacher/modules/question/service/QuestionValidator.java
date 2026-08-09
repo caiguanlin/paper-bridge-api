@@ -4,39 +4,25 @@ import com.paper.teacher.constant.enums.QuestionTypeEnum;
 
 import cn.hutool.core.util.StrUtil;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.paper.teacher.common.BusinessException;
+import com.paper.teacher.common.JsonSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 public class QuestionValidator {
-    private final ObjectMapper objectMapper;
+    private final JsonSupport jsonSupport;
 
     public void validate(QuestionTypeEnum type, String contentJson, String answerJson) {
-        JsonNode content = readObject(contentJson, "题目内容 JSON 不合法");
-        JsonNode answer = readObject(answerJson, "答案 JSON 不合法");
+        JsonNode content = jsonSupport.readObjectNode(contentJson, "题目内容 JSON 不合法");
+        JsonNode answer = jsonSupport.readObjectNode(answerJson, "答案 JSON 不合法");
         switch (type) {
             case SINGLE_CHOICE -> validateSingleChoice(content, answer);
             case TRUE_FALSE -> validateTrueFalse(answer);
             case FILL_BLANK -> validateFillBlank(content, answer);
             case MATCHING -> validateMatching(content, answer);
             case DICTATION -> validateDictation(content, answer);
-        }
-    }
-
-    private JsonNode readObject(String json, String error) {
-        try {
-            JsonNode node = objectMapper.readTree(json);
-            if (node == null || !node.isObject()) {
-                throw new BusinessException(error);
-            }
-            return node;
-        } catch (BusinessException exception) {
-            throw exception;
-        } catch (Exception exception) {
-            throw new BusinessException(error);
         }
     }
 

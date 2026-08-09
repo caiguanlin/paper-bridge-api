@@ -9,8 +9,8 @@ import com.paper.teacher.modules.template.entity.QuestionTypeTemplateItem;
 import com.paper.teacher.modules.template.entity.QuestionTypeTemplate;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.paper.teacher.common.BusinessException;
+import com.paper.teacher.common.Entities;
+import com.paper.teacher.common.Scores;
 import com.paper.teacher.modules.template.dto.QuestionTypeTemplateRequest;
 import com.paper.teacher.modules.template.dto.QuestionTypeTemplateResponse;
 import lombok.RequiredArgsConstructor;
@@ -61,34 +61,23 @@ public class QuestionTypeTemplateService {
         template.setTotalScore(calculateTotalScore(request.items()));
         template.setUpdatedAt(LocalDateTime.now());
         templateRepository.updateById(template);
-        itemRepository.delete(new LambdaUpdateWrapper<QuestionTypeTemplateItem>()
-                .eq(QuestionTypeTemplateItem::getTemplateId, id));
+        itemRepository.deleteByTemplate(id);
         insertItems(id, request.items());
         return detail(id);
     }
 
     @Transactional
     public void delete(Long id) {
-        if (templateRepository.deleteById(id) == 0) {
-            throw new BusinessException("题型配置模板不存在");
-        }
-        itemRepository.delete(new LambdaUpdateWrapper<QuestionTypeTemplateItem>()
-                .eq(QuestionTypeTemplateItem::getTemplateId, id));
+        Entities.requireAffected(templateRepository.deleteById(id), "题型配置模板不存在");
+        itemRepository.deleteByTemplate(id);
     }
 
     private QuestionTypeTemplate findTemplate(Long id) {
-        QuestionTypeTemplate template = templateRepository.selectById(id);
-        if (template == null) {
-            throw new BusinessException("题型配置模板不存在");
-        }
-        return template;
+        return Entities.require(templateRepository.selectById(id), "题型配置模板不存在");
     }
 
     private List<QuestionTypeTemplateItem> items(Long templateId) {
-        return itemRepository.selectList(new LambdaQueryWrapper<QuestionTypeTemplateItem>()
-                .eq(QuestionTypeTemplateItem::getTemplateId, templateId)
-                .orderByAsc(QuestionTypeTemplateItem::getSortOrder)
-                .orderByAsc(QuestionTypeTemplateItem::getId));
+        return itemRepository.findByTemplateOrdered(templateId);
     }
 
     private void insertItems(Long templateId, List<QuestionTypeTemplateRequest.ItemRequest> items) {
@@ -106,8 +95,6 @@ public class QuestionTypeTemplateService {
     }
 
     private BigDecimal calculateTotalScore(List<QuestionTypeTemplateRequest.ItemRequest> items) {
-        return items.stream()
-                .map(QuestionTypeTemplateRequest.ItemRequest::subtotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return Scores.sumOf(items, QuestionTypeTemplateRequest.ItemRequest::subtotal);
     }
 }

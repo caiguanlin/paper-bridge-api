@@ -17,14 +17,17 @@ import com.paper.teacher.constant.enums.GenerationStrategyEnum;
 import com.paper.teacher.constant.enums.PaperScopeTypeEnum;
 import com.paper.teacher.constant.enums.PaperStatusEnum;
 
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.paper.teacher.modules.ai.service.AiQuestionClient;
 import com.paper.teacher.modules.ai.dto.AiQuestionGenerationRequest;
 import com.paper.teacher.modules.ai.dto.AiQuestionGenerationResponse;
 import com.paper.teacher.modules.ai.service.AiQuestionValidator;
 import com.paper.teacher.common.BusinessException;
+import com.paper.teacher.common.Entities;
+import com.paper.teacher.common.JsonSupport;
+import com.paper.teacher.common.Scores;
+import com.paper.teacher.modules.paper.support.PaperSnapshots;
 import com.paper.teacher.modules.paper.dto.PaperGenerateRequest;
 import com.paper.teacher.modules.paper.dto.PaperGenerateRequest.ChapterScope;
 import com.paper.teacher.modules.paper.dto.PaperPlanPreview;
@@ -32,7 +35,6 @@ import com.paper.teacher.modules.paper.dto.PaperResponse;
 import com.paper.teacher.modules.paper.dto.PaperSummaryResponse;
 import com.paper.teacher.modules.question.entity.Question;
 import com.paper.teacher.modules.question.repository.QuestionRepository;
-import com.paper.teacher.constant.enums.QuestionSourceEnum;
 import com.paper.teacher.constant.enums.QuestionTypeEnum;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -60,7 +62,7 @@ public class PaperGenerationService {
     private final QuestionRepository questionRepository;
     private final AiQuestionClient aiQuestionClient;
     private final AiQuestionValidator aiQuestionValidator;
-    private final ObjectMapper objectMapper;
+    private final JsonSupport jsonSupport;
 
     public PaperPlanPreview preview(Long ownerUserId, PaperGenerateRequest request) {
         validateScope(request);
@@ -123,7 +125,8 @@ public class PaperGenerationService {
 
             int sortOrder = 1;
             for (Question question : bankQuestions) {
-                snapshotBankQuestion(paper.getId(), section.getId(), question, sectionRequest.scorePerQuestion(), sortOrder++);
+                paperQuestionRepository.insert(PaperSnapshots.fromBankQuestion(
+                        paper.getId(), section.getId(), question, sectionRequest.scorePerQuestion(), sortOrder++));
                 question.setUsageCount((question.getUsageCount() == null ? 0 : question.getUsageCount()) + 1);
                 question.setUpdatedAt(now);
                 questionRepository.updateById(question);
@@ -133,7 +136,8 @@ public class PaperGenerationService {
             if (missing > 0 && request.strategy() != GenerationStrategyEnum.BANK_ONLY) {
                 for (AiQuestionGenerationResponse response : generateAiQuestions(request, sectionRequest, missing)) {
                     aiQuestionValidator.validate(response);
-                    snapshotAiQuestion(paper.getId(), section.getId(), response, sectionRequest.scorePerQuestion(), sortOrder++);
+                    paperQuestionRepository.insert(PaperSnapshots.fromAiQuestion(
+                            paper.getId(), section.getId(), response, sectionRequest.scorePerQuestion(), sortOrder++));
                 }
             }
         }
@@ -171,10 +175,7 @@ public class PaperGenerationService {
         copy.setUpdatedAt(now);
         paperRepository.insert(copy);
 
-        List<PaperSection> originalSections = paperSectionRepository.selectList(
-                new LambdaQueryWrapper<PaperSection>()
-                        .eq(PaperSection::getPaperId, paperId)
-                        .orderByAsc(PaperSection::getSortOrder));
+        List<PaperSection> originalSections = paperSectionRepository.findByPaperOrdered(paperId);
 
         for (PaperSection originalSection : originalSections) {
             PaperSection copySection = new PaperSection();
@@ -187,24 +188,9 @@ public class PaperGenerationService {
             copySection.setSortOrder(originalSection.getSortOrder());
             paperSectionRepository.insert(copySection);
 
-            List<PaperQuestion> originalQuestions = paperQuestionRepository.selectList(
-                    new LambdaQueryWrapper<PaperQuestion>()
-                            .eq(PaperQuestion::getSectionId, originalSection.getId())
-                            .orderByAsc(PaperQuestion::getSortOrder));
-
-            for (PaperQuestion originalQuestion : originalQuestions) {
-                PaperQuestion copyQuestion = new PaperQuestion();
-                copyQuestion.setPaperId(copy.getId());
-                copyQuestion.setSectionId(copySection.getId());
-                copyQuestion.setSourceQuestionId(originalQuestion.getSourceQuestionId());
-                copyQuestion.setSource(originalQuestion.getSource());
-                copyQuestion.setStemSnapshot(originalQuestion.getStemSnapshot());
-                copyQuestion.setContentSnapshotJson(originalQuestion.getContentSnapshotJson());
-                copyQuestion.setAnswerSnapshotJson(originalQuestion.getAnswerSnapshotJson());
-                copyQuestion.setAnalysisSnapshot(originalQuestion.getAnalysisSnapshot());
-                copyQuestion.setScore(originalQuestion.getScore());
-                copyQuestion.setSortOrder(originalQuestion.getSortOrder());
-                paperQuestionRepository.insert(copyQuestion);
+            for (PaperQuestion originalQuestion : paperQuestionRepository.findBySectionOrdered(originalSection.getId())) {
+                paperQuestionRepository.insert(
+                        PaperSnapshots.copyOf(originalQuestion, copy.getId(), copySection.getId()));
             }
         }
 
@@ -214,10 +200,7 @@ public class PaperGenerationService {
     @Transactional
     public PaperResponse regenerate(Long ownerUserId, Long paperId) {
         Paper original = requirePaper(ownerUserId, paperId);
-        List<PaperSection> originalSections = paperSectionRepository.selectList(
-                new LambdaQueryWrapper<PaperSection>()
-                        .eq(PaperSection::getPaperId, paperId)
-                        .orderByAsc(PaperSection::getSortOrder));
+        List<PaperSection> originalSections = paperSectionRepository.findByPaperOrdered(paperId);
 
         List<PaperGenerateRequest.SectionRequest> sectionRequests = originalSections.stream()
                 .map(section -> new PaperGenerateRequest.SectionRequest(
@@ -228,10 +211,8 @@ public class PaperGenerationService {
                 ))
                 .toList();
 
-        paperQuestionRepository.delete(new LambdaQueryWrapper<PaperQuestion>()
-                .eq(PaperQuestion::getPaperId, paperId));
-        paperSectionRepository.delete(new LambdaQueryWrapper<PaperSection>()
-                .eq(PaperSection::getPaperId, paperId));
+        paperQuestionRepository.deleteByPaper(paperId);
+        paperSectionRepository.deleteByPaper(paperId);
 
         ScopeSnapshot scope = scopeSnapshot(original);
         PaperGenerateRequest request = new PaperGenerateRequest(
@@ -266,22 +247,16 @@ public class PaperGenerationService {
     @Transactional
     public void delete(Long ownerUserId, Long paperId) {
         Paper paper = requirePaper(ownerUserId, paperId);
-        paperQuestionRepository.delete(new LambdaQueryWrapper<PaperQuestion>()
-                .eq(PaperQuestion::getPaperId, paperId));
-        paperSectionRepository.delete(new LambdaQueryWrapper<PaperSection>()
-                .eq(PaperSection::getPaperId, paperId));
+        paperQuestionRepository.deleteByPaper(paperId);
+        paperSectionRepository.deleteByPaper(paperId);
         paperRepository.deleteById(paper);
     }
 
     public PaperResponse loadPaper(Long ownerUserId, Long paperId) {
         Paper paper = requirePaper(ownerUserId, paperId);
-        List<PaperSection> sections = paperSectionRepository.selectList(new LambdaQueryWrapper<PaperSection>()
-                .eq(PaperSection::getPaperId, paperId)
-                .orderByAsc(PaperSection::getSortOrder));
+        List<PaperSection> sections = paperSectionRepository.findByPaperOrdered(paperId);
         List<PaperResponse.SectionResponse> sectionResponses = sections.stream().map(section -> {
-            List<PaperResponse.QuestionResponse> questions = paperQuestionRepository.selectList(new LambdaQueryWrapper<PaperQuestion>()
-                            .eq(PaperQuestion::getSectionId, section.getId())
-                            .orderByAsc(PaperQuestion::getSortOrder))
+            List<PaperResponse.QuestionResponse> questions = paperQuestionRepository.findBySectionOrdered(section.getId())
                     .stream()
                     .map(PaperResponse.QuestionResponse::from)
                     .toList();
@@ -291,10 +266,8 @@ public class PaperGenerationService {
     }
 
     Paper requirePaper(Long ownerUserId, Long paperId) {
-        Paper paper = paperRepository.selectById(paperId);
-        if (paper == null || !paper.getOwnerUserId().equals(ownerUserId)) {
-            throw new BusinessException("试卷不存在");
-        }
+        Paper paper = Entities.require(paperRepository.selectById(paperId), "试卷不存在");
+        Entities.check(paper.getOwnerUserId().equals(ownerUserId), "试卷不存在");
         return paper;
     }
 
@@ -309,36 +282,6 @@ public class PaperGenerationService {
         section.setSortOrder(sortOrder);
         paperSectionRepository.insert(section);
         return section;
-    }
-
-    private void snapshotBankQuestion(Long paperId, Long sectionId, Question question, BigDecimal score, int sortOrder) {
-        PaperQuestion snapshot = new PaperQuestion();
-        snapshot.setPaperId(paperId);
-        snapshot.setSectionId(sectionId);
-        snapshot.setSourceQuestionId(question.getId());
-        snapshot.setSource(question.getSource());
-        snapshot.setStemSnapshot(question.getStem());
-        snapshot.setContentSnapshotJson(question.getContentJson());
-        snapshot.setAnswerSnapshotJson(question.getAnswerJson());
-        snapshot.setAnalysisSnapshot(question.getAnalysis());
-        snapshot.setScore(score);
-        snapshot.setSortOrder(sortOrder);
-        paperQuestionRepository.insert(snapshot);
-    }
-
-    private void snapshotAiQuestion(Long paperId, Long sectionId, AiQuestionGenerationResponse response, BigDecimal score, int sortOrder) {
-        PaperQuestion snapshot = new PaperQuestion();
-        snapshot.setPaperId(paperId);
-        snapshot.setSectionId(sectionId);
-        snapshot.setSourceQuestionId(null);
-        snapshot.setSource(QuestionSourceEnum.AI);
-        snapshot.setStemSnapshot(response.stem());
-        snapshot.setContentSnapshotJson(response.contentJson());
-        snapshot.setAnswerSnapshotJson(response.answerJson());
-        snapshot.setAnalysisSnapshot(response.analysis());
-        snapshot.setScore(score);
-        snapshot.setSortOrder(sortOrder);
-        paperQuestionRepository.insert(snapshot);
     }
 
     private List<AiQuestionGenerationResponse> generateAiQuestions(
@@ -418,7 +361,7 @@ public class PaperGenerationService {
                 if (request.chapters() == null || request.chapters().isEmpty()) {
                     throw new BusinessException("CHAPTERS 范围必须至少选择一个章节");
                 }
-                if (request.chapters().stream().anyMatch(scope -> isBlank(scope.unit()) || isBlank(scope.chapter()))) {
+                if (request.chapters().stream().anyMatch(scope -> StrUtil.isBlank(scope.unit()) || StrUtil.isBlank(scope.chapter()))) {
                     throw new BusinessException("CHAPTERS 范围中的单元和章节不能为空");
                 }
             }
@@ -426,7 +369,7 @@ public class PaperGenerationService {
                 if (request.units() == null || request.units().isEmpty()) {
                     throw new BusinessException("UNITS 范围必须至少选择一个单元");
                 }
-                if (request.units().stream().anyMatch(this::isBlank)) {
+                if (request.units().stream().anyMatch(StrUtil::isBlank)) {
                     throw new BusinessException("UNITS 范围中的单元不能为空");
                 }
             }
@@ -443,9 +386,7 @@ public class PaperGenerationService {
     }
 
     private BigDecimal subtotal(PaperGenerateRequest request) {
-        return request.sections().stream()
-                .map(PaperGenerateRequest.SectionRequest::subtotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return Scores.sumOf(request.sections(), PaperGenerateRequest.SectionRequest::subtotal);
     }
 
     private ScopeDisplay scopeDisplay(PaperGenerateRequest request) {
@@ -470,20 +411,14 @@ public class PaperGenerationService {
     }
 
     private String scopePayloadJson(PaperGenerateRequest request) {
-        try {
-            return objectMapper.writeValueAsString(new ScopeSnapshot(request.scopeType(), request.units(), request.chapters()));
-        } catch (JsonProcessingException ex) {
-            throw new BusinessException("组卷范围序列化失败：" + ex.getMessage());
-        }
+        return jsonSupport.write(
+                new ScopeSnapshot(request.scopeType(), request.units(), request.chapters()),
+                "组卷范围序列化失败");
     }
 
     private ScopeSnapshot scopeSnapshot(Paper paper) {
-        if (paper.getScopePayloadJson() != null && !paper.getScopePayloadJson().isBlank()) {
-            try {
-                return objectMapper.readValue(paper.getScopePayloadJson(), ScopeSnapshot.class);
-            } catch (JsonProcessingException ex) {
-                throw new BusinessException("组卷范围解析失败：" + ex.getMessage());
-            }
+        if (StrUtil.isNotBlank(paper.getScopePayloadJson())) {
+            return jsonSupport.read(paper.getScopePayloadJson(), ScopeSnapshot.class, "组卷范围解析失败");
         }
         return new ScopeSnapshot(PaperScopeTypeEnum.CHAPTERS, null, inferLegacyChapterScopes(paper.getUnit(), paper.getChapter()));
     }
@@ -494,10 +429,6 @@ public class PaperGenerationService {
                 .filter(chapter -> !chapter.isBlank())
                 .map(chapter -> new ChapterScope(unit, chapter))
                 .toList();
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.isBlank();
     }
 
     private record ScopeDisplay(String unit, String chapter) {

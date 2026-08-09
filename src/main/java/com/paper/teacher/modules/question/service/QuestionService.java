@@ -11,6 +11,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.paper.teacher.modules.question.dto.QuestionCreateRequest;
 import com.paper.teacher.modules.question.dto.QuestionResponse;
 import com.paper.teacher.modules.question.dto.QuestionSearchRequest;
+import com.paper.teacher.modules.question.support.Questions;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,25 +28,7 @@ public class QuestionService {
     @Transactional
     public Question create(Long ownerUserId, QuestionCreateRequest request, QuestionSourceEnum source) {
         questionValidator.validate(request.questionType(), request.contentJson(), request.answerJson());
-        LocalDateTime now = LocalDateTime.now();
-        Question question = new Question();
-        question.setOwnerUserId(ownerUserId);
-        question.setGrade(request.grade());
-        question.setPublisher(request.publisher());
-        question.setSubject(request.subject());
-        question.setVolume(request.volume());
-        question.setUnit(request.unit());
-        question.setChapter(request.chapter());
-        question.setQuestionType(request.questionType());
-        question.setDifficulty(request.difficulty());
-        question.setStem(request.stem());
-        question.setContentJson(request.contentJson());
-        question.setAnswerJson(request.answerJson());
-        question.setAnalysis(request.analysis());
-        question.setSource(source);
-        question.setUsageCount(0);
-        question.setCreatedAt(now);
-        question.setUpdatedAt(now);
+        Question question = Questions.from(ownerUserId, request, source, LocalDateTime.now());
         questionRepository.insert(question);
         return question;
     }
